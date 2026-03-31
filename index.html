@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Steel Reconciliation — MEW-5991</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;color:#f1f5f9;font-family:Arial,sans-serif;font-size:13px;padding:14px;min-height:100vh}
+  .header{background:linear-gradient(135deg,#1e3a5f,#1e293b);border-radius:10px;padding:14px 20px;margin-bottom:14px;border-left:4px solid #3b82f6}
+  .header h1{font-size:18px;font-weight:700}
+  .header p{color:#94a3b8;font-size:11px;margin-top:3px}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tab-btn{background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+  .tab-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6}
+  .tab-pane{display:none}.tab-pane.active{display:block}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:14px}
+  .card-title{color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .kpi-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .kpi{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;text-align:center}
+  .kpi-label{color:#94a3b8;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+  .kpi-val{font-size:20px;font-weight:700}
+  .kpi-sub{color:#94a3b8;font-size:10px;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{padding:8px 10px;color:#94a3b8;font-weight:600;border-bottom:2px solid #334155;white-space:nowrap}
+  td{padding:7px 10px;border-bottom:1px solid #33415522}
+  tr:nth-child(even) td{background:#ffffff05}
+  tfoot td{border-top:2px solid #334155;font-weight:700;background:#ffffff08}
+  .ta-r{text-align:right}.ta-l{text-align:left}.ta-c{text-align:center}
+  .green{color:#22c55e}.red{color:#ef4444}.yellow{color:#f59e0b}.accent{color:#3b82f6}.purple{color:#a78bfa}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form-grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+  label{display:block;color:#94a3b8;font-size:11px;margin-bottom:4px}
+  input,select{width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:6px;padding:7px 10px;font-size:13px}
+  .form-group{margin-bottom:10px}
+  .btn{background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-sm{background:#1e40af;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer}
+  .btn-red{background:#ef444422;color:#ef4444;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px}
+  .msg{margin-left:12px;color:#22c55e;font-size:13px}
+  .dia-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+  .dia-card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px;text-align:center}
+  .scroll-table{max-height:380px;overflow-y:auto}
+  .filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .filter-btn{background:#0f172a;color:#94a3b8;border:1px solid #334155;border-radius:5px;padding:4px 12px;font-size:12px;cursor:pointer}
+  .filter-btn.active{background:#1e40af;color:#93c5fd;border-color:#3b82f6}
+  .search-box{background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:6px;padding:6px 10px;font-size:12px;width:180px}
+  .badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700}
+  .badge-i{background:#1e40af22;color:#60a5fa;border:1px solid #1e40af55}
+  .badge-ii{background:#16653422;color:#4ade80;border:1px solid #16653455}
+  .badge-iii{background:#78350f22;color:#fbbf24;border:1px solid #78350f55}
+  .alert{background:#1e3a5f;border:1px solid #3b82f655;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px}
+  .alert-title{color:#60a5fa;font-weight:700;margin-bottom:4px}
+  .note{color:#94a3b8;font-size:11px;margin-top:8px}
+  .foot{text-align:center;color:#94a3b8;font-size:11px;margin-top:20px}
+  @media(max-width:600px){
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .kpi-grid-3{grid-template-columns:1fr 1fr}
+    .form-grid-4{grid-template-columns:1fr 1fr}
+    .dia-grid{grid-template-columns:repeat(3,1fr)}
+  }
+</style>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBf8L7gGj5UXx6yZirp4htqiGFZvdQcCpM",
+    authDomain: "lnt5991.firebaseapp.com",
+    projectId: "lnt5991",
+    storageBucket: "lnt5991.firebasestorage.app",
+    messagingSenderId: "903502287289",
+    appId: "1:903502287289:web:4f3c6522b1732a3d9f2668",
+    measurementId: "G-4ZF3GXVCB1"
+  };
+
+  const app = initializeApp(firebaseConfig, "lnt5991-util");
+  const db = getFirestore(app);
+  window._db = db;
+  window._fbReady = true;
+
+  // Expose Firestore helpers globally
+  window._fbOps = { collection, doc, setDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, orderBy };
+
+  // Load extra util entries from Firebase
+  async function loadUtilFromFirebase() {
+    try {
+      const snap = await getDocs(collection(db, "utilization_extra"));
+      const extras = [];
+      snap.forEach(d => extras.push({ _fbId: d.id, ...d.data() }));
+      window._UTIL_EXTRA = extras;
+      if (window._mergeAndRenderUtil) window._mergeAndRenderUtil();
+    } catch(e) { console.warn("Firebase load error:", e); }
+  }
+  loadUtilFromFirebase();
+</script>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚙️ Steel Reconciliation — MEW-5991</h1>
+  <p>L&T Construction · PT&D · 400kV OHL · Khiran–Wafra–Sulaibiya &nbsp;|&nbsp; Contract: MEW/C/5991-2023/2024 &nbsp;|&nbsp; As on: 11-Feb-2026</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('summary',this)">📊 Reconciliation</button>
+  <button class="tab-btn" onclick="showTab('utilization',this)">📋 Utilization</button>
+  <button class="tab-btn" onclick="showTab('kameran',this)">🏗 S/C Monthly Log</button>
+  <button class="tab-btn" onclick="showTab('stock',this)">📦 Stock Receipts</button>
+</div>
+
+<!-- ═══ SUMMARY ═══════════════════════════════════════════════════════════════ -->
+<div id="tab-summary" class="tab-pane active">
+
+  <div class="alert">
+    <div class="alert-title">⚠️ Note — Discrepancy Detected</div>
+    Summary sheet shows <strong style="color:#f59e0b">2,041.25 MT</strong> utilized at site, but Utilization sheet (pile-by-pile entries) totals <strong style="color:#ef4444">1,570.55 MT</strong>.
+    Gap = <strong style="color:#ef4444">~470.7 MT</strong>. Likely some tower locations have theoretical values in Summary but actual pile data not yet entered in Utilization sheet. Verify with Ravi.
+  </div>
+
+  <div class="card">
+    <div class="card-title">Steel Reconciliation — By Rebar Diameter (Summary Sheet Values)</div>
+    <div style="overflow-x:auto">
+      <table id="summary-table">
+        <thead>
+          <tr>
+            <th class="ta-r">Dia (mm)</th>
+            <th class="ta-r">Received (MT)</th>
+            <th class="ta-r">Util. Site (MT)</th>
+            <th class="ta-r">Util. S/C (MT)</th>
+            <th class="ta-r">Stock (MT)</th>
+            <th class="ta-r">Total Accounted</th>
+            <th class="ta-r">Balance (MT)</th>
+          </tr>
+        </thead>
+        <tbody id="summary-body"></tbody>
+        <tfoot id="summary-foot"></tfoot>
+      </table>
+    </div>
+    <div class="note">ℹ️ Balance = Received − (Util. Site + Util. S/C + Stock). Base data as on 11-Feb-2026 (Oula factory source).</div>
+  </div>
+  <div class="kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Total Received</div><div class="kpi-val green" id="kpi-received">—</div></div>
+    <div class="kpi"><div class="kpi-label">Stock at Store</div><div class="kpi-val yellow" id="kpi-stock">—</div></div>
+    <div class="kpi"><div class="kpi-label">S/C Total (Kameran)</div><div class="kpi-val accent" id="kpi-kameran">—</div><div class="kpi-sub" id="kpi-kameran-months">—</div></div>
+  </div>
+</div>
+
+<!-- ═══ UTILIZATION ══════════════════════════════════════════════════════════ -->
+<div id="tab-utilization" class="tab-pane">
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Total Locations</div><div class="kpi-val accent">298</div></div>
+    <div class="kpi"><div class="kpi-label">Item-I Locations</div><div class="kpi-val" style="color:#60a5fa">115</div><div class="kpi-sub">813.1 MT</div></div>
+    <div class="kpi"><div class="kpi-label">Item-II Locations</div><div class="kpi-val green">172</div><div class="kpi-sub">693.3 MT</div></div>
+    <div class="kpi"><div class="kpi-label">Item-III Locations</div><div class="kpi-val yellow">11</div><div class="kpi-sub">64.1 MT</div></div>
+  </div>
+
+  <div class="kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Total Utilized (Pile-by-Pile)</div><div class="kpi-val green">1,570.55 MT</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Wastage (sampled)</div><div class="kpi-val yellow">2.87%</div><div class="kpi-sub">From 32 detailed entries</div></div>
+    <div class="kpi"><div class="kpi-label">Highest Single Wastage</div><div class="kpi-val red">14.76%</div><div class="kpi-sub">Loc 10/0 — D30+0 (BW soil)</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tower Location Steel Usage — 298 Locations</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterUtil('ALL',this)">All (298)</button>
+      <button class="filter-btn" onclick="filterUtil('Item-I',this)">Item-I (115)</button>
+      <button class="filter-btn" onclick="filterUtil('Item-II',this)">Item-II (172)</button>
+      <button class="filter-btn" onclick="filterUtil('Item-III',this)">Item-III (11)</button>
+      <input class="search-box" id="util-search" placeholder="🔍 Search location..." oninput="searchUtil()"/>
+    </div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-l">#</th>
+            <th class="ta-l">Item</th>
+            <th class="ta-l">Tower Location</th>
+            <th class="ta-l">Tower Type</th>
+            <th class="ta-l">Soil Class</th>
+            <th class="ta-r">Total Used (MT)</th>
+            <th class="ta-c" style="width:70px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="util-body"></tbody>
+        <tfoot id="util-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">➕ Add New Tower Location Entry</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tower Location (e.g. 10/37)</label><input id="u-loc" placeholder="10/37"/></div>
+      <div class="form-group"><label>Item</label>
+        <select id="u-item">
+          <option value="Item-I">Item-I</option>
+          <option value="Item-II">Item-II</option>
+          <option value="Item-III">Item-III</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tower Type (e.g. D2+0)</label><input id="u-ttype" placeholder="D2+0"/></div>
+      <div class="form-group"><label>Soil Class (e.g. A, BW, CW)</label><input id="u-soil" placeholder="A"/></div>
+      <div class="form-group"><label>Total Used (MT)</label><input id="u-mt" type="number" step="0.001" placeholder="0.000"/></div>
+    </div>
+    <button class="btn" onclick="addUtilEntry()">Add Entry</button>
+    <span class="msg" id="u-msg"></span>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal" style="display:none;position:fixed;inset:0;background:#000000bb;z-index:999;align-items:center;justify-content:center">
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;width:min(420px,95vw)">
+      <div style="color:#60a5fa;font-weight:700;margin-bottom:16px;font-size:15px">✏️ Edit Tower Location</div>
+      <input type="hidden" id="edit-idx"/>
+      <input type="hidden" id="edit-fbid"/>
+      <div class="form-group"><label>Tower Location</label><input id="edit-loc"/></div>
+      <div class="form-group"><label>Item</label>
+        <select id="edit-item">
+          <option value="Item-I">Item-I</option>
+          <option value="Item-II">Item-II</option>
+          <option value="Item-III">Item-III</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tower Type</label><input id="edit-ttype"/></div>
+      <div class="form-group"><label>Soil Class</label><input id="edit-soil"/></div>
+      <div class="form-group"><label>Total Used (MT)</label><input id="edit-mt" type="number" step="0.001"/></div>
+      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn" onclick="saveEdit()">💾 Save Changes</button>
+        <button class="btn" style="background:#334155" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-red" style="background:#ef444422;color:#ef4444;border:1px solid #ef444455;padding:8px 14px;font-size:13px;font-weight:600;border-radius:6px" onclick="deleteUtil()">🗑 Delete</button>
+      </div>
+      <span class="msg" id="edit-msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 Analysis — Key Observations</div>
+    <div style="line-height:1.8;font-size:12px">
+      <p>📌 <strong style="color:#f59e0b">Highest wastage locations:</strong> 10/0 (D30+0, BW soil, 14.76% = 1,229 kg), 9/0 (D30+0, CW soil, 11.52% = 1,019 kg).
+        Both are <strong>angle towers with heavy foundations</strong> — expected due to complex cage geometry.</p>
+      <br/>
+      <p>📌 <strong style="color:#60a5fa">Large single-location consumers:</strong> Loc 4/0 (D90+0, 44.1 MT), 5/0 (D60+9, 36.9 MT), 8/38 (DT+0, 36.3 MT),
+        9/0 (D30+0, 29.6 MT), 8/25 (DT+0, 28.8 MT). These are deviation towers &amp; terminal structures.</p>
+      <br/>
+      <p>📌 <strong style="color:#4ade80">Standard D2+0 piles (Item-I):</strong> Soil A = ~1.664 MT, Soil B = ~1.909 MT, Soil C = ~2.073 MT, Soil D = ~2.515 MT, Soil E = ~2.768 MT per location. Very consistent — confirms good control.</p>
+      <br/>
+      <p>📌 <strong style="color:#fbbf24">Item-III locations</strong> (KHIRAN 23.2 MT, MNZPA 17.7 MT, 132KV 20.0 MT) are gantry/terminal structures — high steel consumers per structure.</p>
+      <br/>
+      <p>📌 <strong style="color:#ef4444">Discrepancy of ~470.7 MT</strong> between Summary (2,041 MT) and Utilization (1,571 MT) needs resolution.
+        Possible causes: (a) some towers counted in Summary but not yet in Utilization sheet, or (b) unit weight differences between theoretical and actual.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KAMERAN ══════════════════════════════════════════════════════════════ -->
+<div id="tab-kameran" class="tab-pane">
+  <div class="card">
+    <div class="card-title">Kameran — Monthly Joint Measurement Summary (Steel Cut, Bend &amp; Tying)</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="ta-l">#</th><th class="ta-l">Month</th><th class="ta-l">Period</th>
+          <th class="ta-r">Entries</th><th class="ta-r">Total Weight (MT)</th><th class="ta-r"></th>
+        </tr>
+      </thead>
+      <tbody id="kameran-body"></tbody>
+      <tfoot id="kameran-foot"></tfoot>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">➕ Add New Monthly Entry</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Month (e.g. Mar 2026)</label><input id="k-month" placeholder="Mar 2026"/></div>
+      <div class="form-group"><label>Period (e.g. 01-Mar to 31-Mar 2026)</label><input id="k-period" placeholder="01-Mar to 31-Mar 2026"/></div>
+      <div class="form-group"><label>Total Weight (MT)</label><input id="k-weight" type="number" step="0.001" placeholder="0.000"/></div>
+      <div class="form-group"><label>No. of Pile Entries</label><input id="k-items" type="number" placeholder="0"/></div>
+    </div>
+    <button class="btn" onclick="addKameran()">Add Entry</button>
+    <span class="msg" id="k-msg"></span>
+  </div>
+</div>
+
+<!-- ═══ STOCK ════════════════════════════════════════════════════════════════ -->
+<div id="tab-stock" class="tab-pane">
+  <div class="dia-grid" id="dia-totals"></div>
+  <div class="card">
+    <div class="card-title">Stock Receipts from Oula Factory</div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-r">Date</th><th class="ta-r">Dia (mm)</th><th class="ta-r">No. Bars</th>
+            <th class="ta-r">Length (m)</th><th class="ta-r">Weight (MT)</th><th class="ta-r"></th>
+          </tr>
+        </thead>
+        <tbody id="stock-body"></tbody>
+        <tfoot id="stock-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">➕ Add New Stock Receipt</div>
+    <div class="form-grid-4">
+      <div class="form-group"><label>Delivery Date</label><input id="s-date" type="date"/></div>
+      <div class="form-group"><label>Rebar Dia (mm)</label>
+        <select id="s-dia"><option value="10">⌀10 mm</option><option value="16">⌀16 mm</option>
+        <option value="20">⌀20 mm</option><option value="25" selected>⌀25 mm</option><option value="32">⌀32 mm</option></select>
+      </div>
+      <div class="form-group"><label>No. of Bars</label><input id="s-bars" type="number" placeholder="0"/></div>
+      <div class="form-group"><label>Length/Bar (m)</label><input id="s-len" type="number" step="0.1" value="12"/></div>
+      <div class="form-group"><label>Weight (MT)</label><input id="s-weight" type="number" step="0.001" placeholder="0.000"/></div>
+    </div>
+    <button class="btn" onclick="addReceipt()">Add Receipt</button>
+    <span class="msg" id="s-msg"></span>
+  </div>
+</div>
+
+<div class="foot">Base data: Steel_Reconsilation_3-9-26_ravi.xlsx · New entries auto-saved in browser</div>
+
+<script>
+// ─── Utilization Data (298 locations from Sheet4) ─────────────────────────────
+const UTIL_DATA = [
+  {loc:"10/36",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"10/35",item:"Item-I",ttype:"D2+0",soil:"D",totalMT:2.558},
+  {loc:"10/34",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/33",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"10/32",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/31",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"10/30",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/29",item:"Item-I",ttype:"D2+0",soil:"D",totalMT:2.515},
+  {loc:"10/28",item:"Item-I",ttype:"D2+0",soil:"C",totalMT:2.073},
+  {loc:"10/27",item:"Item-I",ttype:"D10+0",soil:"C",totalMT:3.300},
+  {loc:"10/26",item:"Item-I",ttype:"D2+0",soil:"C",totalMT:2.073},
+  {loc:"10/25",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"10/24",item:"Item-I",ttype:"D2+0",soil:"C",totalMT:2.073},
+  {loc:"10/23",item:"Item-I",ttype:"D2+0",soil:"D",totalMT:2.545},
+  {loc:"10/20",item:"Item-I",ttype:"D2+0",soil:"D",totalMT:2.517},
+  {loc:"10/19",item:"Item-I",ttype:"D2+0",soil:"E",totalMT:2.800},
+  {loc:"10/18",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/17",item:"Item-I",ttype:"D10+0",soil:"A",totalMT:2.549},
+  {loc:"10/22",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/21",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/16",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/15",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"10/14",item:"Item-I",ttype:"D2+0",soil:"E",totalMT:2.768},
+  {loc:"10/13",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"10/12",item:"Item-I",ttype:"D2+0",soil:"C",totalMT:2.102},
+  {loc:"10/0",item:"Item-I",ttype:"D30+0",soil:"BW",totalMT:24.301},
+  {loc:"9/0",item:"Item-I",ttype:"D30+0",soil:"CW",totalMT:29.609},
+  {loc:"10/04",item:"Item-I",ttype:"D10+3",soil:"AW",totalMT:3.578},
+  {loc:"10/11",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"10/10",item:"Item-I",ttype:"D2+0",soil:"A",totalMT:1.664},
+  {loc:"10/03",item:"Item-I",ttype:"D2+0",soil:"BW",totalMT:2.697},
+  {loc:"10/06",item:"Item-I",ttype:"D10+21",soil:"BW",totalMT:4.306},
+  {loc:"10/05",item:"Item-I",ttype:"D10+6",soil:"A",totalMT:2.500},
+  {loc:"10/02",item:"Item-I",ttype:"D2+3",soil:"AW",totalMT:2.217},
+  {loc:"10/01",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"8/44",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.000},
+  {loc:"8/43",item:"Item-I",ttype:"D10+12",soil:"BW",totalMT:5.553},
+  {loc:"8/37",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.000},
+  {loc:"8/42",item:"Item-I",ttype:"D10+6",soil:"BW",totalMT:5.273},
+  {loc:"8/39",item:"Item-I",ttype:"GT(SC)+0",soil:"CW",totalMT:15.381},
+  {loc:"8/40",item:"Item-I",ttype:"GT(SC)+0",soil:"DW",totalMT:19.972},
+  {loc:"8/36",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"8/41",item:"Item-I",ttype:"DT+0",soil:"BW",totalMT:24.888},
+  {loc:"8/33",item:"Item-I",ttype:"D2+3",soil:"DW",totalMT:9.818},
+  {loc:"8/30",item:"Item-I",ttype:"D2+6",soil:"CW",totalMT:2.927},
+  {loc:"8/38",item:"Item-I",ttype:"DT+0",soil:"DW",totalMT:36.252},
+  {loc:"8/34",item:"Item-I",ttype:"D10+6",soil:"CW",totalMT:5.756},
+  {loc:"8/32",item:"Item-I",ttype:"D10+12",soil:"BW",totalMT:5.273},
+  {loc:"8/31",item:"Item-I",ttype:"D10+9",soil:"A",totalMT:5.341},
+  {loc:"8/35",item:"Item-I",ttype:"D10+6",soil:"DW",totalMT:5.636},
+  {loc:"8/29",item:"Item-I",ttype:"D10+12",soil:"DW",totalMT:5.722},
+  {loc:"8/28",item:"Item-I",ttype:"D10+15",soil:"CW",totalMT:5.817},
+  {loc:"8/27",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"8/26",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"8/25",item:"Item-I",ttype:"DT+0",soil:"BW",totalMT:28.780},
+  {loc:"8/21",item:"Item-I",ttype:"D10+6",soil:"BW",totalMT:5.438},
+  {loc:"8/20",item:"Item-I",ttype:"D10+6",soil:"BW",totalMT:5.426},
+  {loc:"8/13",item:"Item-I",ttype:"D10+0",soil:"DW",totalMT:5.636},
+  {loc:"8/6",item:"Item-I",ttype:"D10+24",soil:"CW",totalMT:5.722},
+  {loc:"132KV",item:"Item-III",ttype:"GT-M",soil:"AW",totalMT:19.960},
+  {loc:"8/19",item:"Item-I",ttype:"D2+0",soil:"BW",totalMT:2.834},
+  {loc:"8/18",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.000},
+  {loc:"8/22",item:"Item-I",ttype:"DT+0",soil:"CW",totalMT:15.597},
+  {loc:"8/17",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.000},
+  {loc:"8/16",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.000},
+  {loc:"8/15",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.000},
+  {loc:"8/14",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:5.057},
+  {loc:"8/12",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"8/11",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.927},
+  {loc:"8/10",item:"Item-I",ttype:"D2+0",soil:"CW",totalMT:2.956},
+  {loc:"8/8",item:"Item-I",ttype:"D2+0",soil:"BW",totalMT:2.834},
+  {loc:"8/9",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:4.006},
+  {loc:"8/7",item:"Item-I",ttype:"D10+3",soil:"CW",totalMT:5.739},
+  {loc:"8/3",item:"Item-I",ttype:"D2+0",soil:"AW",totalMT:2.217},
+  {loc:"8/5",item:"Item-I",ttype:"D10+24",soil:"CW",totalMT:5.636},
+  {loc:"7/3",item:"Item-I",ttype:"D2+6",soil:"DW",totalMT:7.109},
+  {loc:"7/2",item:"Item-I",ttype:"D2+6",soil:"BW",totalMT:14.358},
+  {loc:"8/4",item:"Item-I",ttype:"D10+3",soil:"CW",totalMT:5.731},
+  {loc:"8/2",item:"Item-I",ttype:"D10+0",soil:"AW",totalMT:3.888},
+  {loc:"8/1",item:"Item-I",ttype:"D10+6",soil:"CW",totalMT:5.636},
+  {loc:"8/0",item:"Item-I",ttype:"D10+0",soil:"BW",totalMT:7.859},
+  {loc:"11/0",item:"Item-I",ttype:"DT+0",soil:"BW",totalMT:26.979},
+  {loc:"5/0",item:"Item-I",ttype:"D60+9",soil:"AW",totalMT:36.863},
+  {loc:"12/0",item:"Item-I",ttype:"GT+0",soil:"B",totalMT:18.973},
+  {loc:"4/5",item:"Item-I",ttype:"DT+0",soil:"AW",totalMT:12.413},
+  {loc:"10/7",item:"Item-I",ttype:"D10+21",soil:"AW",totalMT:3.658},
+  {loc:"4/4",item:"Item-I",ttype:"GU+0",soil:"CW",totalMT:13.332},
+  {loc:"4/0",item:"Item-I",ttype:"D90+0",soil:"CW",totalMT:44.124},
+  {loc:"4/2",item:"Item-I",ttype:"GU+0",soil:"AW",totalMT:8.538},
+  {loc:"KHIRAN",item:"Item-III",ttype:"DT",soil:"BW",totalMT:23.228},
+  {loc:"10/9",item:"Item-I",ttype:"D2+0",soil:"B",totalMT:1.909},
+  {loc:"4/1",item:"Item-I",ttype:"GU+0",soil:"AW",totalMT:10.848},
+  {loc:"MNZPA",item:"Item-III",ttype:"DT",soil:"CW",totalMT:17.672},
+  {loc:"4/3",item:"Item-I",ttype:"GU+0",soil:"AW",totalMT:6.572},
+  {loc:"1B/0",item:"Item-I",ttype:"D90+3",soil:"DW",totalMT:25.826},
+  {loc:"1A/0",item:"Item-I",ttype:"D90+3",soil:"CW",totalMT:13.219},
+  {loc:"10/8",item:"Item-I",ttype:"D10+12",soil:"AW",totalMT:3.658},
+  {loc:"10A/7",item:"Item-I",ttype:"D10+12",soil:"AW",totalMT:3.564},
+  {loc:"1B/1",item:"Item-I",ttype:"D10+6",soil:"EW",totalMT:4.805},
+  {loc:"1A/3",item:"Item-I",ttype:"D2+0",soil:"DW",totalMT:8.184},
+  {loc:"1A/1",item:"Item-I",ttype:"D10+12",soil:"DW",totalMT:9.049},
+  {loc:"8/23",item:"Item-I",ttype:"GT(SC)+0",soil:"DW",totalMT:9.818},
+  {loc:"8/24",item:"Item-I",ttype:"GT(SC)+0",soil:"CW",totalMT:4.909},
+  {loc:"3/0",item:"Item-II",ttype:"D30+0",soil:"A",totalMT:5.693},
+  {loc:"3/1",item:"Item-II",ttype:"D30+0",soil:"A",totalMT:10.530},
+  {loc:"2/2",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"2/3",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"2A/0",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"2A/3",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"2A/1",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+  {loc:"2A/2",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+  {loc:"3/11",item:"Item-II",ttype:"D30+0",soil:"D",totalMT:12.824},
+  {loc:"4A/0",item:"Item-II",ttype:"D30+0",soil:"A",totalMT:5.046},
+  {loc:"5/1",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:7.330},
+  {loc:"5/2",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"3/12",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.515},
+  {loc:"3/13",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.291},
+  {loc:"5/3",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"5/4",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"5/5",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"5/6",item:"Item-II",ttype:"D10+0",soil:"A",totalMT:2.791},
+  {loc:"5/7",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"5/8",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.707},
+  {loc:"5/9",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"5/10",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.645},
+  {loc:"5/11",item:"Item-II",ttype:"D2+3",soil:"C",totalMT:2.445},
+  {loc:"6/0",item:"Item-II",ttype:"D60+12",soil:"BW",totalMT:21.026},
+  {loc:"3/2",item:"Item-II",ttype:"DT+0",soil:"B",totalMT:11.951},
+  {loc:"3/3",item:"Item-II",ttype:"GU+0",soil:"B",totalMT:20.472},
+  {loc:"3/4",item:"Item-II",ttype:"GU+0",soil:"D",totalMT:14.355},
+  {loc:"3/5",item:"Item-II",ttype:"GU+0",soil:"C",totalMT:15.247},
+  {loc:"3/6",item:"Item-II",ttype:"GU+0",soil:"C",totalMT:14.558},
+  {loc:"3/7",item:"Item-II",ttype:"DT+0",soil:"B",totalMT:12.686},
+  {loc:"2/0",item:"Item-II",ttype:"D10+0",soil:"A",totalMT:2.784},
+  {loc:"1/0",item:"Item-II",ttype:"DT+0",soil:"B",totalMT:8.205},
+  {loc:"GC-1",item:"Item-II",ttype:"GT+0",soil:"B",totalMT:9.158},
+  {loc:"7/1",item:"Item-I",ttype:"D10+6",soil:"DW",totalMT:9.177},
+  {loc:"10/7A",item:"Item-I",ttype:"",soil:"",totalMT:0.285},
+  {loc:"3/10",item:"Item-I",ttype:"D2+6",soil:"CW",totalMT:3.112},
+  {loc:"3/8",item:"Item-I",ttype:"D2+6",soil:"CW",totalMT:2.998},
+  {loc:"3/9",item:"Item-I",ttype:"D2+6",soil:"BW",totalMT:2.768},
+  {loc:"10/6",item:"Item-I",ttype:"D10+21",soil:"",totalMT:0.094},
+  {loc:"7/4",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.303},
+  {loc:"7/5",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.423},
+  {loc:"7/6",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.579},
+  {loc:"7/7",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:2.026},
+  {loc:"7/8",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.804},
+  {loc:"7/9",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.707},
+  {loc:"7/11",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"7/10",item:"Item-II",ttype:"D10+0",soil:"A",totalMT:2.803},
+  {loc:"7/12",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.515},
+  {loc:"20/0",item:"Item-II",ttype:"D90+0",soil:"E",totalMT:16.103},
+  {loc:"18/18",item:"Item-II",ttype:"D10+9",soil:"C",totalMT:3.309},
+  {loc:"18/17",item:"Item-II",ttype:"D2+0",soil:"E",totalMT:2.879},
+  {loc:"19/2",item:"Item-II",ttype:"GU+0",soil:"D",totalMT:7.427},
+  {loc:"19/1",item:"Item-II",ttype:"GU+0",soil:"C",totalMT:6.742},
+  {loc:"18/16",item:"Item-II",ttype:"D2+3",soil:"D",totalMT:2.572},
+  {loc:"18/15",item:"Item-II",ttype:"D2+0",soil:"E",totalMT:2.825},
+  {loc:"18/14",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.515},
+  {loc:"18/13",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.572},
+  {loc:"18/12",item:"Item-II",ttype:"D2+0",soil:"E",totalMT:2.825},
+  {loc:"18/11",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.572},
+  {loc:"18/10",item:"Item-II",ttype:"D10+6",soil:"D",totalMT:4.032},
+  {loc:"18/9",item:"Item-II",ttype:"D10+9",soil:"D",totalMT:4.032},
+  {loc:"18/8",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.572},
+  {loc:"18/7",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.572},
+  {loc:"18/4",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.786},
+  {loc:"18/6",item:"Item-II",ttype:"D10+3",soil:"C",totalMT:3.663},
+  {loc:"18/1",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.798},
+  {loc:"18/5",item:"Item-II",ttype:"D10+0",soil:"C",totalMT:4.495},
+  {loc:"18/3",item:"Item-II",ttype:"D10+0",soil:"D",totalMT:4.541},
+  {loc:"18/2",item:"Item-II",ttype:"D10+0",soil:"D",totalMT:4.525},
+  {loc:"18/0",item:"Item-II",ttype:"D30+6",soil:"B",totalMT:6.586},
+  {loc:"17/13",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"17/12",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.100},
+  {loc:"17/11",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.827},
+  {loc:"17/10",item:"Item-II",ttype:"D10+0",soil:"A",totalMT:2.477},
+  {loc:"17/9",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.827},
+  {loc:"17/8",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+  {loc:"17/7",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.285},
+  {loc:"17/6",item:"Item-II",ttype:"D2+3",soil:"D",totalMT:2.712},
+  {loc:"17/5",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.100},
+  {loc:"17/4",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"17/3",item:"Item-II",ttype:"D2+3",soil:"D",totalMT:2.727},
+  {loc:"17/2",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"17/1",item:"Item-II",ttype:"D2+3",soil:"D",totalMT:2.045},
+  {loc:"17/0",item:"Item-II",ttype:"D90+3",soil:"A",totalMT:6.769},
+  {loc:"15/0",item:"Item-II",ttype:"D30+0",soil:"A",totalMT:5.481},
+  {loc:"16/0",item:"Item-II",ttype:"D60+0",soil:"B",totalMT:14.241},
+  {loc:"15/1",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.250},
+  {loc:"14/5",item:"Item-II",ttype:"D10+3",soil:"A",totalMT:2.803},
+  {loc:"14/2",item:"Item-II",ttype:"D10+12",soil:"C",totalMT:2.114},
+  {loc:"14/4",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.742},
+  {loc:"14/3",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+  {loc:"14/1",item:"Item-II",ttype:"D10+9",soil:"C",totalMT:3.539},
+  {loc:"12/7",item:"Item-II",ttype:"D10+0",soil:"D",totalMT:4.240},
+  {loc:"12/6",item:"Item-II",ttype:"D2+0",soil:"E",totalMT:2.991},
+  {loc:"13/0",item:"Item-II",ttype:"D30+21",soil:"C",totalMT:6.231},
+  {loc:"12/5",item:"Item-I",ttype:"D10+3",soil:"D",totalMT:3.955},
+  {loc:"12/2",item:"Item-II",ttype:"D2+3",soil:"C",totalMT:2.260},
+  {loc:"12/4",item:"Item-II",ttype:"D10+3",soil:"C",totalMT:3.539},
+  {loc:"12/1",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"12/3",item:"Item-II",ttype:"D10+15",soil:"C",totalMT:3.527},
+  {loc:"11/11",item:"Item-II",ttype:"D2+3",soil:"C",totalMT:2.260},
+  {loc:"11/12",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+  {loc:"11/110",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.742},
+  {loc:"11/13",item:"Item-II",ttype:"D10+15",soil:"C",totalMT:3.539},
+  {loc:"11/9",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"11/8",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"11/7",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"11/5",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"11/6",item:"Item-II",ttype:"D10+10",soil:"B",totalMT:3.416},
+  {loc:"11/4",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"11/2",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"11/3",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"11/1",item:"Item-II",ttype:"D2+6",soil:"C",totalMT:2.260},
+  {loc:"17/19",item:"Item-II",ttype:"D10+0",soil:"B",totalMT:3.416},
+  {loc:"17/17",item:"Item-II",ttype:"D10+0",soil:"D",totalMT:4.240},
+  {loc:"17/15",item:"Item-II",ttype:"D2+6",soil:"C",totalMT:2.260},
+  {loc:"17/16",item:"Item-II",ttype:"D2+3",soil:"A",totalMT:1.827},
+  {loc:"17/14",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.636},
+  {loc:"17/18",item:"Item-II",ttype:"D10+15",soil:"A",totalMT:2.803},
+  {loc:"1A/2",item:"Item-I",ttype:"D10+9",soil:"CW",totalMT:5.893},
+  {loc:"7/0",item:"Item-I",ttype:"D60+3",soil:"BW",totalMT:16.606},
+  {loc:"6/2",item:"Item-I",ttype:"D10+33",soil:"DW",totalMT:5.737},
+  {loc:"7/32",item:"Item-II",ttype:"D10+6",soil:"D",totalMT:4.092},
+  {loc:"7/14",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"7/13",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.753},
+  {loc:"7/15",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.100},
+  {loc:"7/16",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.827},
+  {loc:"7/17",item:"Item-II",ttype:"D2+3",soil:"A",totalMT:1.800},
+  {loc:"7/18",item:"Item-II",ttype:"D10+21",soil:"A",totalMT:2.809},
+  {loc:"7/19",item:"Item-II",ttype:"D10+21",soil:"A",totalMT:2.803},
+  {loc:"7/22",item:"Item-II",ttype:"D2+6",soil:"A",totalMT:1.827},
+  {loc:"7/20",item:"Item-II",ttype:"D10+24",soil:"A",totalMT:2.803},
+  {loc:"7/23",item:"Item-II",ttype:"D2+6",soil:"A",totalMT:1.117},
+  {loc:"7/21",item:"Item-II",ttype:"D10+24",soil:"A",totalMT:2.803},
+  {loc:"7/24",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.260},
+  {loc:"7/25",item:"Item-II",ttype:"D2+3",soil:"A",totalMT:1.868},
+  {loc:"7/26",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:3.409},
+  {loc:"7/27",item:"Item-II",ttype:"D2+0",soil:"E",totalMT:2.839},
+  {loc:"7/28",item:"Item-II",ttype:"D10+0",soil:"C",totalMT:3.604},
+  {loc:"7/29",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.370},
+  {loc:"7/30",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"7/31",item:"Item-II",ttype:"D10+6",soil:"D",totalMT:3.955},
+  {loc:"30-DT ALZOUR",item:"Item-III",ttype:"DT+0",soil:"",totalMT:0.111},
+  {loc:"30-GT ALZOUR",item:"Item-III",ttype:"GT-END",soil:"",totalMT:0.060},
+  {loc:"7/33",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.727},
+  {loc:"7/34",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.798},
+  {loc:"7/35",item:"Item-II",ttype:"D2+0",soil:"E",totalMT:2.839},
+  {loc:"7/36",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.798},
+  {loc:"7/37",item:"Item-II",ttype:"D2+6",soil:"C",totalMT:2.360},
+  {loc:"30GT CL",item:"Item-III",ttype:"GT",soil:"",totalMT:0.060},
+  {loc:"30GTCP",item:"Item-III",ttype:"GT CP",soil:"",totalMT:0.092},
+  {loc:"31 DT",item:"Item-III",ttype:"DT+0",soil:"",totalMT:2.352},
+  {loc:"31DT",item:"Item-III",ttype:"DT+0",soil:"",totalMT:0.111},
+  {loc:"30GT,31GT",item:"Item-III",ttype:"GT",soil:"",totalMT:0.359},
+  {loc:"7/38",item:"Item-II",ttype:"D10+6",soil:"C",totalMT:3.604},
+  {loc:"7/39",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.940},
+  {loc:"7/40",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.727},
+  {loc:"7/46",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.727},
+  {loc:"7/41",item:"Item-II",ttype:"D10+6",soil:"D",totalMT:4.348},
+  {loc:"7/42",item:"Item-II",ttype:"D10+12",soil:"C",totalMT:3.539},
+  {loc:"7/47",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.727},
+  {loc:"7/45",item:"Item-II",ttype:"D10+12",soil:"C",totalMT:3.570},
+  {loc:"10/1",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.309},
+  {loc:"7/48",item:"Item-II",ttype:"D10+12",soil:"D",totalMT:4.385},
+  {loc:"10/3",item:"Item-II",ttype:"D10+24",soil:"C",totalMT:3.570},
+  {loc:"9/2",item:"Item-II",ttype:"D2+0",soil:"C",totalMT:2.309},
+  {loc:"9/1",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.556},
+  {loc:"10/2",item:"Item-II",ttype:"D10+6",soil:"D",totalMT:4.300},
+  {loc:"8A/38",item:"Item-II",ttype:"D10+21",soil:"D",totalMT:4.300},
+  {loc:"8A/36",item:"Item-II",ttype:"D2+6",soil:"A",totalMT:1.885},
+  {loc:"8A/34",item:"Item-II",ttype:"D2+0",soil:"A",totalMT:1.885},
+  {loc:"8A/31",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.727},
+  {loc:"8A/30",item:"Item-II",ttype:"D2+6",soil:"D",totalMT:2.727},
+  {loc:"8A/33",item:"Item-II",ttype:"D10+6",soil:"A",totalMT:2.790},
+  {loc:"4/5,8/22",item:"Item-I",ttype:"DT+0",soil:"AW,CW",totalMT:24.837},
+  {loc:"8A/24",item:"Item-II",ttype:"D10+3",soil:"A",totalMT:2.765},
+  {loc:"8A/29",item:"Item-II",ttype:"D2+0",soil:"D",totalMT:2.727},
+  {loc:"8A/18",item:"Item-II",ttype:"D60+0",soil:"A",totalMT:11.677},
+  {loc:"8A/25",item:"Item-II",ttype:"D10",soil:"D",totalMT:4.240},
+  {loc:"8A/26",item:"Item-II",ttype:"D10",soil:"D",totalMT:4.240},
+  {loc:"8A/27",item:"Item-II",ttype:"D10+0",soil:"D",totalMT:6.276},
+  {loc:"8A/23",item:"Item-II",ttype:"D10+0",soil:"B",totalMT:3.406},
+  {loc:"8A/21",item:"Item-II",ttype:"D10+15",soil:"D",totalMT:3.955},
+  {loc:"8A/32",item:"Item-II",ttype:"D30+3",soil:"B",totalMT:6.654},
+  {loc:"8A/19",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+  {loc:"8A/35",item:"Item-II",ttype:"D30+0",soil:"A",totalMT:5.353},
+  {loc:"8A/28",item:"Item-II",ttype:"D30+3",soil:"C",totalMT:6.819},
+  {loc:"8A/37",item:"Item-II",ttype:"D60+18",soil:"C",totalMT:15.115},
+  {loc:"8A/22",item:"Item-II",ttype:"D90+6",soil:"D",totalMT:12.317},
+  {loc:"8A/20",item:"Item-II",ttype:"D90+3",soil:"C",totalMT:11.232},
+  {loc:"ZOUR-A",item:"Item-III",ttype:"GT-M",soil:"",totalMT:0.136},
+  {loc:"3/3A",item:"Item-I",ttype:"D10+6",soil:"BW",totalMT:4.592},
+  {loc:"1A/4",item:"Item-I",ttype:"D2+3",soil:"DW",totalMT:1.007},
+  {loc:"2/1",item:"Item-I",ttype:"D2+6",soil:"CW",totalMT:0.296},
+  {loc:"6/1",item:"Item-I",ttype:"D90+33",soil:"CW",totalMT:0.142},
+  {loc:"14/0",item:"Item-II",ttype:"D90+21",soil:"C",totalMT:4.078},
+  {loc:"8A/19A",item:"Item-II",ttype:"D2+0",soil:"B",totalMT:2.127},
+];
+
+// ─── Base Data ────────────────────────────────────────────────────────────────
+const BASE_SUMMARY=[
+  {dia:10,received:174,utilSite:163.377,utilSC:2.727,stock:7.851},
+  {dia:16,received:42,utilSite:38.125,utilSC:0.766,stock:3.190},
+  {dia:25,received:1236,utilSite:1158.990,utilSC:0.820,stock:76.234},
+  {dia:32,received:704,utilSite:663.119,utilSC:0.240,stock:32.849},
+  {dia:20,received:19,utilSite:17.638,utilSC:0,stock:1.411},
+];
+const BASE_KAMERAN=[
+  {month:"Aug 2025",period:"01 Aug – 31 Aug 2025",totalMT:102.243,items:23},
+  {month:"Sep 2025",period:"01 Sep – 30 Sep 2025",totalMT:162.836,items:53},
+  {month:"Oct 2025",period:"01 Oct – 31 Oct 2025",totalMT:185.826,items:35},
+  {month:"Nov 2025",period:"01 Nov – 03 Dec 2025",totalMT:52.868,items:16},
+  {month:"Dec 2025",period:"04 Dec 2025 – 07 Jan 2026",totalMT:60.056,items:8},
+  {month:"Feb 2026",period:"01 Feb – 28 Feb 2026",totalMT:66.298,items:12},
+];
+const BASE_RECEIPTS=[
+  {date:"10-Aug-2024",dia:25,bars:616,lengthM:12,weightMT:28.000},
+  {date:"10-Aug-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"18-Aug-2024",dia:25,bars:836,lengthM:12,weightMT:38.000},
+  {date:"18-Aug-2024",dia:10,bars:810,lengthM:12,weightMT:6.000},
+  {date:"18-Aug-2024",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"18-Aug-2024",dia:32,bars:234,lengthM:12,weightMT:18.000},
+  {date:"02-Sep-2024",dia:25,bars:1144,lengthM:12,weightMT:52.000},
+  {date:"02-Sep-2024",dia:10,bars:1350,lengthM:12,weightMT:10.000},
+  {date:"14-Sep-2024",dia:32,bars:338,lengthM:12,weightMT:26.000},
+  {date:"14-Sep-2024",dia:25,bars:748,lengthM:12,weightMT:34.000},
+  {date:"14-Sep-2024",dia:16,bars:318,lengthM:12,weightMT:6.000},
+  {date:"14-Sep-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"22-Sep-2024",dia:32,bars:598,lengthM:12,weightMT:46.000},
+  {date:"22-Sep-2024",dia:25,bars:2552,lengthM:12,weightMT:116.000},
+  {date:"22-Sep-2024",dia:10,bars:4050,lengthM:12,weightMT:30.000},
+  {date:"16-Oct-2024",dia:32,bars:1196,lengthM:12,weightMT:92.000},
+  {date:"16-Oct-2024",dia:25,bars:528,lengthM:12,weightMT:24.000},
+  {date:"16-Oct-2024",dia:16,bars:212,lengthM:12,weightMT:4.000},
+  {date:"16-Oct-2024",dia:10,bars:1080,lengthM:12,weightMT:8.000},
+  {date:"05-Nov-2024",dia:25,bars:704,lengthM:12,weightMT:32.000},
+  {date:"18-Nov-2024",dia:32,bars:390,lengthM:12,weightMT:30.000},
+  {date:"18-Nov-2024",dia:25,bars:704,lengthM:12,weightMT:32.000},
+  {date:"18-Nov-2024",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"20-Nov-2024",dia:32,bars:104,lengthM:12,weightMT:8.000},
+  {date:"20-Nov-2024",dia:25,bars:220,lengthM:12,weightMT:10.000},
+  {date:"20-Nov-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"05-Dec-2024",dia:32,bars:52,lengthM:12,weightMT:4.000},
+  {date:"05-Dec-2024",dia:25,bars:440,lengthM:12,weightMT:20.000},
+  {date:"05-Dec-2024",dia:25,bars:440,lengthM:12,weightMT:20.000},
+  {date:"20-Jan-2025",dia:25,bars:220,lengthM:12,weightMT:10.000},
+  {date:"20-Jan-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"06-Feb-2025",dia:20,bars:650,lengthM:12,weightMT:19.000},
+  {date:"06-Feb-2025",dia:16,bars:636,lengthM:12,weightMT:12.000},
+  {date:"06-Feb-2025",dia:25,bars:748,lengthM:12,weightMT:34.000},
+  {date:"06-Feb-2025",dia:10,bars:2430,lengthM:12,weightMT:18.000},
+  {date:"06-Feb-2025",dia:32,bars:598,lengthM:12,weightMT:46.000},
+  {date:"10-Mar-2025",dia:25,bars:880,lengthM:12,weightMT:40.000},
+  {date:"10-Mar-2025",dia:32,bars:520,lengthM:12,weightMT:40.000},
+  {date:"23-Apr-2025",dia:25,bars:660,lengthM:12,weightMT:30.000},
+  {date:"10-Jun-2025",dia:25,bars:352,lengthM:12,weightMT:16.000},
+  {date:"10-Jun-2025",dia:10,bars:2700,lengthM:12,weightMT:20.000},
+  {date:"07-Jul-2025",dia:10,bars:1890,lengthM:12,weightMT:14.000},
+  {date:"07-Jul-2025",dia:16,bars:1166,lengthM:12,weightMT:22.000},
+  {date:"28-Aug-2025",dia:25,bars:880,lengthM:12,weightMT:40.000},
+  {date:"28-Aug-2025",dia:10,bars:1080,lengthM:12,weightMT:8.000},
+  {date:"09-Oct-2025",dia:25,bars:440,lengthM:12,weightMT:20.000},
+  {date:"09-Oct-2025",dia:10,bars:1350,lengthM:12,weightMT:10.000},
+  {date:"14-Nov-2025",dia:25,bars:1100,lengthM:12,weightMT:50.000},
+  {date:"14-Nov-2025",dia:10,bars:2700,lengthM:12,weightMT:20.000},
+  {date:"14-Nov-2025",dia:32,bars:390,lengthM:12,weightMT:30.000},
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let kameranLog=[...BASE_KAMERAN];
+let receipts=[...BASE_RECEIPTS];
+let utilFilter='ALL';
+
+function load(){
+  try{
+    const k=localStorage.getItem("sr-kameran");
+    if(k) kameranLog=[...BASE_KAMERAN,...JSON.parse(k)];
+    const r=localStorage.getItem("sr-receipts");
+    if(r) receipts=[...BASE_RECEIPTS,...JSON.parse(r)];
+  }catch(e){}
+}
+function saveKameran(){try{localStorage.setItem("sr-kameran",JSON.stringify(kameranLog.slice(BASE_KAMERAN.length)));}catch(e){}}
+function saveReceipts(){try{localStorage.setItem("sr-receipts",JSON.stringify(receipts.slice(BASE_RECEIPTS.length)));}catch(e){}}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const f3=v=>Number(v).toFixed(3);
+const f1=v=>Number(v).toFixed(1);
+const balColor=b=>Math.abs(b)<0.1?"#22c55e":b>0?"#f59e0b":"#ef4444";
+const itemBadge=i=>{
+  if(i==="Item-I")   return `<span class="badge badge-i">Item-I</span>`;
+  if(i==="Item-II")  return `<span class="badge badge-ii">Item-II</span>`;
+  return `<span class="badge badge-iii">Item-III</span>`;
+};
+
+// ─── Render Summary ───────────────────────────────────────────────────────────
+function renderSummary(){
+  let totR=0,totUS=0,totUC=0,totSt=0,rows="";
+  BASE_SUMMARY.forEach((r,i)=>{
+    const total=r.utilSite+r.utilSC+r.stock;
+    const bal=r.received-total;
+    const bg=i%2===0?"background:#ffffff05":"";
+    rows+=`<tr style="${bg}">
+      <td class="ta-r accent"><b>⌀ ${r.dia}</b></td>
+      <td class="ta-r">${f3(r.received)}</td>
+      <td class="ta-r">${f3(r.utilSite)}</td>
+      <td class="ta-r">${f3(r.utilSC)}</td>
+      <td class="ta-r">${f3(r.stock)}</td>
+      <td class="ta-r">${f3(total)}</td>
+      <td class="ta-r" style="color:${balColor(bal)};font-weight:700">${bal>=0?"+":""}${f3(bal)}</td>
+    </tr>`;
+    totR+=r.received;totUS+=r.utilSite;totUC+=r.utilSC;totSt+=r.stock;
+  });
+  document.getElementById("summary-body").innerHTML=rows;
+  const totAcc=totUS+totUC+totSt;
+  const totBal=totR-totAcc;
+  document.getElementById("summary-foot").innerHTML=`<tr>
+    <td class="ta-r">TOTAL</td><td class="ta-r">${f3(totR)}</td><td class="ta-r">${f3(totUS)}</td>
+    <td class="ta-r">${f3(totUC)}</td><td class="ta-r">${f3(totSt)}</td><td class="ta-r">${f3(totAcc)}</td>
+    <td class="ta-r" style="color:${balColor(totBal)};font-weight:700">${totBal>=0?"+":""}${f3(totBal)}</td>
+  </tr>`;
+  document.getElementById("kpi-received").textContent=f1(totR)+" MT";
+  document.getElementById("kpi-stock").textContent=f3(totSt)+" MT";
+  const kTotal=kameranLog.reduce((s,r)=>s+r.totalMT,0);
+  document.getElementById("kpi-kameran").textContent=f3(kTotal)+" MT";
+  document.getElementById("kpi-kameran-months").textContent="across "+kameranLog.length+" months";
+}
+
+// ─── Utilization Extra (Firebase-backed) ─────────────────────────────────────
+window._UTIL_EXTRA = [];
+
+function getAllUtil(){
+  return [...UTIL_DATA, ...window._UTIL_EXTRA];
+}
+
+window._mergeAndRenderUtil = function(){
+  const all=getAllUtil();
+  const base=utilFilter==="ALL"?all:all.filter(r=>r.item===utilFilter);
+  const q=document.getElementById("util-search")?document.getElementById("util-search").value.toLowerCase():"";
+  const data=q?base.filter(r=>r.loc.toLowerCase().includes(q)||(r.ttype||"").toLowerCase().includes(q)):base;
+  renderUtil(data, all);
+  updateUtilKPIs(all);
+};
+
+function updateUtilKPIs(all){
+  const total=all.reduce((s,r)=>s+r.totalMT,0);
+  const i1=all.filter(r=>r.item==="Item-I");
+  const i2=all.filter(r=>r.item==="Item-II");
+  const i3=all.filter(r=>r.item==="Item-III");
+  const kpis=document.querySelectorAll(".kpi .kpi-val");
+  // Update the live KPI grid in utilization tab
+  const utilKpis=document.querySelectorAll("#tab-utilization .kpi");
+  if(utilKpis.length>=4){
+    utilKpis[0].querySelector(".kpi-val").textContent=all.length;
+    utilKpis[1].querySelector(".kpi-val").textContent=i1.length;
+    if(utilKpis[1].querySelector(".kpi-sub")) utilKpis[1].querySelector(".kpi-sub").textContent=f3(i1.reduce((s,r)=>s+r.totalMT,0))+" MT";
+    utilKpis[2].querySelector(".kpi-val").textContent=i2.length;
+    if(utilKpis[2].querySelector(".kpi-sub")) utilKpis[2].querySelector(".kpi-sub").textContent=f3(i2.reduce((s,r)=>s+r.totalMT,0))+" MT";
+    utilKpis[3].querySelector(".kpi-val").textContent=i3.length;
+    if(utilKpis[3].querySelector(".kpi-sub")) utilKpis[3].querySelector(".kpi-sub").textContent=f3(i3.reduce((s,r)=>s+r.totalMT,0))+" MT";
+  }
+  const kpi2=document.querySelectorAll("#tab-utilization .kpi-grid-3 .kpi");
+  if(kpi2.length>=1) kpi2[0].querySelector(".kpi-val").textContent=f3(total)+" MT";
+}
+
+// ─── Render Utilization ───────────────────────────────────────────────────────
+function renderUtil(data, allData){
+  const tbody=document.getElementById("util-body");
+  const tfoot=document.getElementById("util-foot");
+  const all=allData||getAllUtil();
+  let total=0,rows="";
+  data.forEach((r,i)=>{
+    const bg=i%2===0?"background:#ffffff05":"";
+    const color=r.item==="Item-I"?"#60a5fa":r.item==="Item-II"?"#4ade80":"#fbbf24";
+    const globalIdx=all.indexOf(r);
+    const isExtra=globalIdx>=UTIL_DATA.length;
+    rows+=`<tr style="${bg}">
+      <td class="ta-l" style="color:#94a3b8">${i+1}</td>
+      <td class="ta-l">${itemBadge(r.item)}</td>
+      <td class="ta-l" style="color:${color};font-weight:700">${r.loc}</td>
+      <td class="ta-l">${r.ttype||"—"}</td>
+      <td class="ta-l">${r.soil||"—"}</td>
+      <td class="ta-r" style="font-weight:600;color:#22c55e">${f3(r.totalMT)}</td>
+      <td class="ta-c"><button class="btn-sm" onclick="openEdit(${globalIdx})" style="background:#1e40af22;color:#60a5fa;border:1px solid #1e40af55">✏️ Edit</button></td>
+    </tr>`;
+    total+=r.totalMT;
+  });
+  tbody.innerHTML=rows;
+  tfoot.innerHTML=`<tr>
+    <td colspan="6" class="ta-r">TOTAL (${data.length} locations)</td>
+    <td class="ta-r accent" style="font-size:14px;font-weight:700">${f3(total)} MT</td>
+  </tr>`;
+}
+
+function filterUtil(item,btn){
+  utilFilter=item;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("util-search").value="";
+  window._mergeAndRenderUtil();
+}
+
+function searchUtil(){
+  window._mergeAndRenderUtil();
+}
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+function openEdit(idx){
+  const all=getAllUtil();
+  const r=all[idx];
+  if(!r) return;
+  document.getElementById("edit-idx").value=idx;
+  document.getElementById("edit-fbid").value=r._fbId||"";
+  document.getElementById("edit-loc").value=r.loc;
+  document.getElementById("edit-item").value=r.item;
+  document.getElementById("edit-ttype").value=r.ttype||"";
+  document.getElementById("edit-soil").value=r.soil||"";
+  document.getElementById("edit-mt").value=r.totalMT;
+  document.getElementById("edit-msg").textContent="";
+  document.getElementById("edit-modal").style.display="flex";
+}
+function closeModal(){ document.getElementById("edit-modal").style.display="none"; }
+
+async function saveEdit(){
+  const idx=parseInt(document.getElementById("edit-idx").value);
+  const fbId=document.getElementById("edit-fbid").value;
+  const loc=document.getElementById("edit-loc").value.trim();
+  const item=document.getElementById("edit-item").value;
+  const ttype=document.getElementById("edit-ttype").value.trim();
+  const soil=document.getElementById("edit-soil").value.trim();
+  const totalMT=parseFloat(document.getElementById("edit-mt").value);
+  const msg=document.getElementById("edit-msg");
+  if(!loc||isNaN(totalMT)){msg.textContent="⚠️ Location and weight required.";return;}
+  const updated={loc,item,ttype,soil,totalMT};
+  msg.textContent="💾 Saving...";
+  if(idx<UTIL_DATA.length){
+    // Base data — save override to Firebase
+    updated._isOverride=true;
+    updated._overrideIdx=idx;
+    const overrideId="override_"+UTIL_DATA[idx].loc.replace(/\//g,"_");
+    if(window._fbReady && window._fbOps){
+      try{
+        await window._fbOps.setDoc(window._fbOps.doc(window._db,"utilization_extra",overrideId), updated);
+        // Remove from UTIL_DATA display by storing override
+        if(!window._UTIL_OVERRIDES) window._UTIL_OVERRIDES={};
+        window._UTIL_OVERRIDES[idx]=updated;
+        UTIL_DATA[idx]={...UTIL_DATA[idx],...updated};
+        msg.textContent="✅ Saved to Firebase!";
+      }catch(e){msg.textContent="⚠️ Firebase error. Saved locally only."; UTIL_DATA[idx]={...UTIL_DATA[idx],...updated};}
+    } else { UTIL_DATA[idx]={...UTIL_DATA[idx],...updated}; msg.textContent="✅ Saved locally."; }
+  } else {
+    // Extra entry — update in Firebase
+    const extraIdx=idx-UTIL_DATA.length;
+    window._UTIL_EXTRA[extraIdx]={...window._UTIL_EXTRA[extraIdx],...updated};
+    if(fbId && window._fbReady && window._fbOps){
+      try{
+        await window._fbOps.setDoc(window._fbOps.doc(window._db,"utilization_extra",fbId), window._UTIL_EXTRA[extraIdx]);
+        msg.textContent="✅ Saved to Firebase!";
+      }catch(e){msg.textContent="⚠️ Firebase error. Saved locally only.";}
+    } else { msg.textContent="✅ Saved locally."; }
+  }
+  window._mergeAndRenderUtil();
+  setTimeout(()=>{ closeModal(); },1200);
+}
+
+async function deleteUtil(){
+  const idx=parseInt(document.getElementById("edit-idx").value);
+  const fbId=document.getElementById("edit-fbid").value;
+  const msg=document.getElementById("edit-msg");
+  if(idx<UTIL_DATA.length){ msg.textContent="⚠️ Base data cannot be deleted. Edit the values instead."; return; }
+  const extraIdx=idx-UTIL_DATA.length;
+  msg.textContent="🗑 Deleting...";
+  if(fbId && window._fbReady && window._fbOps){
+    try{
+      await window._fbOps.deleteDoc(window._fbOps.doc(window._db,"utilization_extra",fbId));
+      msg.textContent="✅ Deleted!";
+    }catch(e){msg.textContent="⚠️ Firebase error.";}
+  }
+  window._UTIL_EXTRA.splice(extraIdx,1);
+  window._mergeAndRenderUtil();
+  setTimeout(()=>closeModal(),900);
+}
+
+// ─── Add New Utilization Entry ─────────────────────────────────────────────────
+async function addUtilEntry(){
+  const loc=document.getElementById("u-loc").value.trim();
+  const item=document.getElementById("u-item").value;
+  const ttype=document.getElementById("u-ttype").value.trim();
+  const soil=document.getElementById("u-soil").value.trim();
+  const totalMT=parseFloat(document.getElementById("u-mt").value);
+  const msg=document.getElementById("u-msg");
+  if(!loc||isNaN(totalMT)){msg.textContent="⚠️ Location and weight required.";return;}
+  const entry={loc,item,ttype,soil,totalMT};
+  msg.textContent="💾 Saving...";
+  if(window._fbReady && window._fbOps){
+    try{
+      const fbId="entry_"+Date.now()+"_"+loc.replace(/[^a-zA-Z0-9]/g,"_");
+      await window._fbOps.setDoc(window._fbOps.doc(window._db,"utilization_extra",fbId), entry);
+      entry._fbId=fbId;
+      msg.textContent="✅ Saved to Firebase!";
+    }catch(e){msg.textContent="⚠️ Firebase error. Saved locally.";}
+  } else { msg.textContent="✅ Added locally."; }
+  window._UTIL_EXTRA.push(entry);
+  window._mergeAndRenderUtil();
+  document.getElementById("u-loc").value="";
+  document.getElementById("u-ttype").value="";
+  document.getElementById("u-soil").value="";
+  document.getElementById("u-mt").value="";
+  setTimeout(()=>msg.textContent="",3000);
+}
+
+// ─── Render Kameran ───────────────────────────────────────────────────────────
+function renderKameran(){
+  let total=0,rows="";
+  kameranLog.forEach((r,i)=>{
+    const bg=i%2===0?"background:#ffffff05":"";
+    const isNew=i>=BASE_KAMERAN.length;
+    rows+=`<tr style="${bg}">
+      <td class="ta-l" style="color:#94a3b8">${i+1}</td>
+      <td class="ta-l"><b>${r.month}</b></td>
+      <td class="ta-l" style="color:#94a3b8;font-size:11px">${r.period}</td>
+      <td class="ta-r">${r.items}</td>
+      <td class="ta-r green" style="font-weight:700">${f3(r.totalMT)}</td>
+      <td class="ta-r">${isNew?`<button class="btn-red" onclick="delKameran(${i})">✕</button>`:""}</td>
+    </tr>`;
+    total+=r.totalMT;
+  });
+  document.getElementById("kameran-body").innerHTML=rows;
+  document.getElementById("kameran-foot").innerHTML=`<tr>
+    <td colspan="4" class="ta-r">GRAND TOTAL</td>
+    <td class="ta-r accent" style="font-size:16px;font-weight:700">${f3(total)} MT</td><td></td>
+  </tr>`;
+}
+
+// ─── Render Stock ─────────────────────────────────────────────────────────────
+function renderStock(){
+  const dias=[10,16,20,25,32];
+  document.getElementById("dia-totals").innerHTML=dias.map(d=>{
+    const t=receipts.filter(r=>r.dia===d).reduce((s,r)=>s+r.weightMT,0);
+    return `<div class="dia-card"><div style="color:#3b82f6;font-size:18px;font-weight:700">⌀${d}</div>
+      <div style="color:#22c55e;font-size:15px;font-weight:700">${f3(t)} MT</div></div>`;
+  }).join("");
+  let total=0,rows="";
+  receipts.forEach((r,i)=>{
+    const isNew=i>=BASE_RECEIPTS.length;
+    rows+=`<tr><td class="ta-r">${r.date}</td><td class="ta-r accent">⌀${r.dia}</td>
+      <td class="ta-r">${r.bars}</td><td class="ta-r">${r.lengthM}</td>
+      <td class="ta-r green" style="font-weight:600">${f3(r.weightMT)}</td>
+      <td class="ta-r">${isNew?`<button class="btn-red" onclick="delReceipt(${i})">✕</button>`:""}</td></tr>`;
+    total+=r.weightMT;
+  });
+  document.getElementById("stock-body").innerHTML=rows;
+  document.getElementById("stock-foot").innerHTML=`<tr>
+    <td colspan="4" class="ta-r">TOTAL</td>
+    <td class="ta-r accent" style="font-weight:700">${f3(total)} MT</td><td></td>
+  </tr>`;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function addKameran(){
+  const month=document.getElementById("k-month").value.trim();
+  const period=document.getElementById("k-period").value.trim();
+  const wt=parseFloat(document.getElementById("k-weight").value);
+  const items=parseInt(document.getElementById("k-items").value)||0;
+  const msg=document.getElementById("k-msg");
+  if(!month||!wt){msg.textContent="⚠️ Month and Weight required.";return;}
+  kameranLog.push({month,period,totalMT:wt,items});
+  saveKameran();renderKameran();renderSummary();
+  document.getElementById("k-month").value="";
+  document.getElementById("k-period").value="";
+  document.getElementById("k-weight").value="";
+  document.getElementById("k-items").value="";
+  msg.textContent="✅ Added.";setTimeout(()=>msg.textContent="",2500);
+}
+function delKameran(i){kameranLog.splice(i,1);saveKameran();renderKameran();renderSummary();}
+
+function addReceipt(){
+  const date=document.getElementById("s-date").value;
+  const dia=parseInt(document.getElementById("s-dia").value);
+  const bars=parseInt(document.getElementById("s-bars").value)||0;
+  const len=parseFloat(document.getElementById("s-len").value)||12;
+  const wt=parseFloat(document.getElementById("s-weight").value);
+  const msg=document.getElementById("s-msg");
+  if(!date||!wt){msg.textContent="⚠️ Date and Weight required.";return;}
+  const d=new Date(date);
+  const dateStr=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}).replace(/ /g,"-");
+  receipts.push({date:dateStr,dia,bars,lengthM:len,weightMT:wt});
+  saveReceipts();renderStock();
+  document.getElementById("s-date").value="";
+  document.getElementById("s-bars").value="";
+  document.getElementById("s-weight").value="";
+  msg.textContent="✅ Added.";setTimeout(()=>msg.textContent="",2500);
+}
+function delReceipt(i){receipts.splice(i,1);saveReceipts();renderStock();}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function showTab(id,btn){
+  document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active");
+  btn.classList.add("active");
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+load();
+renderSummary();
+window._mergeAndRenderUtil();
+renderKameran();
+renderStock();
+</script>
+</body>
+</html>
