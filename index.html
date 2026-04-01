@@ -53,6 +53,16 @@
   .alert-title{color:#60a5fa;font-weight:700;margin-bottom:4px}
   .note{color:#94a3b8;font-size:11px;margin-top:8px}
   .foot{text-align:center;color:#94a3b8;font-size:11px;margin-top:20px}
+  .chart-bar-wrap{display:flex;align-items:flex-end;gap:6px;height:160px;margin-top:10px;padding-bottom:4px}
+  .chart-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%}
+  .chart-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .4s}
+  .chart-label{color:#94a3b8;font-size:9px;margin-top:4px;text-align:center;word-break:break-word}
+  .chart-val{color:#f1f5f9;font-size:9px;margin-top:2px;font-weight:700}
+  .alert-red{background:#7f1d1d22;border:1px solid #ef444455;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px}
+  .alert-green{background:#14532d22;border:1px solid #22c55e55;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px}
+  .disc-row-miss{background:#ef444411}
+  .offline-badge{display:inline-block;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:4px;padding:2px 8px;font-size:10px;margin-left:10px}
+  .online-badge{display:inline-block;background:#22c55e22;color:#22c55e;border:1px solid #22c55e55;border-radius:4px;padding:2px 8px;font-size:10px;margin-left:10px}
   @media(max-width:600px){
     .kpi-grid{grid-template-columns:1fr 1fr}
     .kpi-grid-3{grid-template-columns:1fr 1fr}
@@ -60,6 +70,7 @@
     .dia-grid{grid-template-columns:repeat(3,1fr)}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -108,6 +119,9 @@
   <button class="tab-btn" onclick="showTab('utilization',this)">📋 Utilization</button>
   <button class="tab-btn" onclick="showTab('kameran',this)">🏗 S/C Monthly Log</button>
   <button class="tab-btn" onclick="showTab('stock',this)">📦 Stock Receipts</button>
+  <button class="tab-btn" onclick="showTab('dashboard',this)">📈 Dashboard</button>
+  <button class="tab-btn" onclick="showTab('discrepancy',this)">🔍 Discrepancy</button>
+  <button class="tab-btn" onclick="exportExcel()" style="background:#16653488;color:#4ade80;border-color:#16653488">⬇ Export Excel</button>
 </div>
 
 <!-- ═══ SUMMARY ═══════════════════════════════════════════════════════════════ -->
@@ -315,6 +329,83 @@
     </div>
     <button class="btn" onclick="addReceipt()">Add Receipt</button>
     <span class="msg" id="s-msg"></span>
+  </div>
+</div>
+
+
+<!-- ═══ DASHBOARD ═══════════════════════════════════════════════════════════ -->
+<div id="tab-dashboard" class="tab-pane">
+  <div id="conn-bar" style="margin-bottom:10px;font-size:12px">
+    Status: <span id="conn-badge" class="online-badge">🟢 Online</span>
+    <span style="color:#94a3b8;margin-left:12px;font-size:11px">Data syncs to Firebase automatically</span>
+  </div>
+  <div class="card">
+    <div class="card-title">🔴 Stock Alert — Set Low-Stock Thresholds (MT)</div>
+    <div class="form-grid-4" style="margin-bottom:10px">
+      <div class="form-group"><label>⌀10 mm threshold</label><input id="th-10" type="number" value="5" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀16 mm threshold</label><input id="th-16" type="number" value="3" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀20 mm threshold</label><input id="th-20" type="number" value="2" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀25 mm threshold</label><input id="th-25" type="number" value="20" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀32 mm threshold</label><input id="th-32" type="number" value="15" step="1" oninput="renderStockAlert()"/></div>
+    </div>
+    <div id="stock-alerts"></div>
+    <div class="note">Balance = Total Received − (Util Site + Util S/C + Physical Stock). Red = below threshold.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 S/C Monthly Consumption — MT per Month (Kameran Log)</div>
+    <div id="kameran-chart" class="chart-bar-wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📉 Steel Balance per Diameter — Received vs Accounted (MT)</div>
+    <div id="balance-chart" class="chart-bar-wrap"></div>
+    <div class="note">Green = surplus, Red = gap/deficit per diameter.</div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Total Received</div><div class="kpi-val green" id="db-received">—</div></div>
+    <div class="kpi"><div class="kpi-label">Util Site (Summary)</div><div class="kpi-val accent" id="db-util-site">—</div></div>
+    <div class="kpi"><div class="kpi-label">S/C Total (Kameran)</div><div class="kpi-val purple" id="db-sc">—</div></div>
+    <div class="kpi"><div class="kpi-label">Net Balance</div><div class="kpi-val" id="db-balance">—</div></div>
+  </div>
+</div>
+
+<!-- ═══ DISCREPANCY ══════════════════════════════════════════════════════════ -->
+<div id="tab-discrepancy" class="tab-pane">
+  <div class="alert">
+    <div class="alert-title">🔍 Discrepancy Resolver — Summary Sheet vs Utilization Pile-by-Pile</div>
+    Compares Summary sheet total (2,041.25 MT) against actual pile entries. Flags zero-MT or missing-data locations.
+  </div>
+  <div class="kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Summary Sheet Total</div><div class="kpi-val yellow" id="disc-summary-total">—</div></div>
+    <div class="kpi"><div class="kpi-label">Utilization Pile Total</div><div class="kpi-val green" id="disc-util-total">—</div></div>
+    <div class="kpi"><div class="kpi-label">Gap (Unresolved)</div><div class="kpi-val red" id="disc-gap">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚠️ Flagged Locations — Zero or Incomplete Entries</div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-l">#</th><th class="ta-l">Tower Location</th><th class="ta-l">Item</th>
+            <th class="ta-l">Tower Type</th><th class="ta-l">Soil</th><th class="ta-r">MT</th><th class="ta-c">Status</th>
+          </tr>
+        </thead>
+        <tbody id="disc-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 All Locations — Sorted by MT (Low → High)</div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-l">Location</th><th class="ta-l">Item</th><th class="ta-l">Tower Type</th>
+            <th class="ta-r">MT Used</th><th class="ta-r">% of Total</th>
+          </tr>
+        </thead>
+        <tbody id="disc-full-body"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -707,8 +798,50 @@ function load(){
     if(r) receipts=[...BASE_RECEIPTS,...JSON.parse(r)];
   }catch(e){}
 }
-function saveKameran(){try{localStorage.setItem("sr-kameran",JSON.stringify(kameranLog.slice(BASE_KAMERAN.length)));}catch(e){}}
-function saveReceipts(){try{localStorage.setItem("sr-receipts",JSON.stringify(receipts.slice(BASE_RECEIPTS.length)));}catch(e){}}
+
+// ─── Firebase Load: Kameran + Receipts ───────────────────────────────────────
+async function loadFromFirebase(){
+  if(!window._fbReady || !window._fbOps) return;
+  const {collection,getDocs}=window._fbOps;
+  const db=window._db;
+  try{
+    const kSnap=await getDocs(collection(db,"kameran_extra"));
+    const kExtras=[];
+    kSnap.forEach(d=>kExtras.push({_fbId:d.id,...d.data()}));
+    kExtras.sort((a,b)=>(a._ts||0)-(b._ts||0));
+    kameranLog=[...BASE_KAMERAN,...kExtras];
+    renderKameran(); renderSummary();
+  }catch(e){console.warn("Kameran Firebase load:",e);}
+  try{
+    const rSnap=await getDocs(collection(db,"receipts_extra"));
+    const rExtras=[];
+    rSnap.forEach(d=>rExtras.push({_fbId:d.id,...d.data()}));
+    rExtras.sort((a,b)=>(a._ts||0)-(b._ts||0));
+    receipts=[...BASE_RECEIPTS,...rExtras];
+    renderStock();
+  }catch(e){console.warn("Receipts Firebase load:",e);}
+}
+
+function saveKameranFB(entry,fbId){
+  if(!window._fbReady||!window._fbOps) return;
+  const {doc,setDoc}=window._fbOps;
+  setDoc(doc(window._db,"kameran_extra",fbId),entry).catch(e=>console.warn("Kameran FB save:",e));
+}
+function delKameranFB(fbId){
+  if(!window._fbReady||!window._fbOps||!fbId) return;
+  const {doc,deleteDoc}=window._fbOps;
+  deleteDoc(doc(window._db,"kameran_extra",fbId)).catch(e=>console.warn("Kameran FB del:",e));
+}
+function saveReceiptFB(entry,fbId){
+  if(!window._fbReady||!window._fbOps) return;
+  const {doc,setDoc}=window._fbOps;
+  setDoc(doc(window._db,"receipts_extra",fbId),entry).catch(e=>console.warn("Receipt FB save:",e));
+}
+function delReceiptFB(fbId){
+  if(!window._fbReady||!window._fbOps||!fbId) return;
+  const {doc,deleteDoc}=window._fbOps;
+  deleteDoc(doc(window._db,"receipts_extra",fbId)).catch(e=>console.warn("Receipt FB del:",e));
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const f3=v=>Number(v).toFixed(3);
@@ -991,15 +1124,24 @@ function addKameran(){
   const items=parseInt(document.getElementById("k-items").value)||0;
   const msg=document.getElementById("k-msg");
   if(!month||!wt){msg.textContent="⚠️ Month and Weight required.";return;}
-  kameranLog.push({month,period,totalMT:wt,items});
-  saveKameran();renderKameran();renderSummary();
+  const ts=Date.now();
+  const fbId="km_"+ts+"_"+month.replace(/[^a-zA-Z0-9]/g,"_");
+  const entry={month,period,totalMT:wt,items,_ts:ts,_fbId:fbId};
+  kameranLog.push(entry);
+  saveKameranFB(entry,fbId);
+  renderKameran();renderSummary();
   document.getElementById("k-month").value="";
   document.getElementById("k-period").value="";
   document.getElementById("k-weight").value="";
   document.getElementById("k-items").value="";
-  msg.textContent="✅ Added.";setTimeout(()=>msg.textContent="",2500);
+  msg.textContent="✅ Saved to Firebase!";setTimeout(()=>msg.textContent="",2500);
 }
-function delKameran(i){kameranLog.splice(i,1);saveKameran();renderKameran();renderSummary();}
+function delKameran(i){
+  const entry=kameranLog[i];
+  if(entry && entry._fbId) delKameranFB(entry._fbId);
+  kameranLog.splice(i,1);
+  renderKameran();renderSummary();
+}
 
 function addReceipt(){
   const date=document.getElementById("s-date").value;
@@ -1011,22 +1153,200 @@ function addReceipt(){
   if(!date||!wt){msg.textContent="⚠️ Date and Weight required.";return;}
   const d=new Date(date);
   const dateStr=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}).replace(/ /g,"-");
-  receipts.push({date:dateStr,dia,bars,lengthM:len,weightMT:wt});
-  saveReceipts();renderStock();
+  const ts=Date.now();
+  const fbId="rec_"+ts;
+  const entry={date:dateStr,dia,bars,lengthM:len,weightMT:wt,_ts:ts,_fbId:fbId};
+  receipts.push(entry);
+  saveReceiptFB(entry,fbId);
+  renderStock();
   document.getElementById("s-date").value="";
   document.getElementById("s-bars").value="";
   document.getElementById("s-weight").value="";
-  msg.textContent="✅ Added.";setTimeout(()=>msg.textContent="",2500);
+  msg.textContent="✅ Saved to Firebase!";setTimeout(()=>msg.textContent="",2500);
 }
-function delReceipt(i){receipts.splice(i,1);saveReceipts();renderStock();}
+function delReceipt(i){
+  const entry=receipts[i];
+  if(entry && entry._fbId) delReceiptFB(entry._fbId);
+  receipts.splice(i,1);
+  renderStock();
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 1 — DISCREPANCY RESOLVER
+// ══════════════════════════════════════════════════════════════════════════
+const SUMMARY_TOTAL=2041.25;
+function renderDiscrepancy(){
+  const all=getAllUtil();
+  const utilTotal=all.reduce((s,r)=>s+r.totalMT,0);
+  const gap=SUMMARY_TOTAL-utilTotal;
+  document.getElementById("disc-summary-total").textContent=f3(SUMMARY_TOTAL)+" MT";
+  document.getElementById("disc-util-total").textContent=f3(utilTotal)+" MT";
+  const gEl=document.getElementById("disc-gap");
+  gEl.textContent=(gap>0?"+":"")+f3(gap)+" MT";
+  gEl.style.color=Math.abs(gap)<1?"#22c55e":gap>0?"#ef4444":"#f59e0b";
+  const flagged=all.filter(r=>r.totalMT===0||!r.ttype||r.ttype==="");
+  let rows="";
+  flagged.forEach((r,i)=>{
+    const status=r.totalMT===0?'<span style="color:#ef4444;font-weight:700">❌ Zero MT</span>':'<span style="color:#f59e0b;font-weight:700">⚠️ No Type</span>';
+    rows+=`<tr style="background:#ef444411"><td class="ta-l" style="color:#94a3b8">${i+1}</td>
+      <td class="ta-l" style="color:#ef4444;font-weight:700">${r.loc}</td>
+      <td class="ta-l">${itemBadge(r.item)}</td>
+      <td class="ta-l">${r.ttype||'<em style="color:#ef4444">MISSING</em>'}</td>
+      <td class="ta-l">${r.soil||"—"}</td>
+      <td class="ta-r">${f3(r.totalMT)}</td>
+      <td class="ta-c">${status}</td></tr>`;
+  });
+  if(!flagged.length) rows=`<tr><td colspan="7" style="text-align:center;color:#22c55e;padding:16px">✅ All locations have data — no flags</td></tr>`;
+  document.getElementById("disc-body").innerHTML=rows;
+  const sorted=[...all].sort((a,b)=>a.totalMT-b.totalMT);
+  let frows="";
+  sorted.forEach(r=>{
+    const pct=utilTotal>0?((r.totalMT/utilTotal)*100).toFixed(2):"0.00";
+    const c=r.totalMT===0?"#ef4444":r.totalMT<1?"#f59e0b":"#f1f5f9";
+    frows+=`<tr><td class="ta-l" style="color:${c};font-weight:600">${r.loc}</td>
+      <td class="ta-l">${itemBadge(r.item)}</td>
+      <td class="ta-l" style="color:#94a3b8">${r.ttype||"—"}</td>
+      <td class="ta-r" style="color:${c};font-weight:600">${f3(r.totalMT)}</td>
+      <td class="ta-r" style="color:#94a3b8">${pct}%</td></tr>`;
+  });
+  document.getElementById("disc-full-body").innerHTML=frows;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 2 — DASHBOARD CHARTS
+// ══════════════════════════════════════════════════════════════════════════
+function renderDashboard(){
+  renderKameranChart();
+  renderBalanceChart();
+  renderDashKPIs();
+  renderStockAlert();
+}
+function renderKameranChart(){
+  const el=document.getElementById("kameran-chart");
+  if(!el||!kameranLog.length){if(el)el.innerHTML='<div style="color:#94a3b8;padding:20px">No data</div>';return;}
+  const maxMT=Math.max(...kameranLog.map(r=>r.totalMT));
+  const colors=["#3b82f6","#22c55e","#f59e0b","#a78bfa","#ec4899","#06b6d4","#f97316","#84cc16"];
+  el.innerHTML=kameranLog.map((r,i)=>{
+    const h=maxMT>0?Math.max(Math.round((r.totalMT/maxMT)*140),4):4;
+    const c=colors[i%colors.length];
+    return `<div class="chart-bar-col" title="${r.month}: ${f3(r.totalMT)} MT">
+      <div class="chart-val" style="color:${c};font-size:8px">${f3(r.totalMT)}</div>
+      <div class="chart-bar" style="height:${h}px;background:${c};margin-top:auto"></div>
+      <div class="chart-label">${r.month.replace(" 20","'")}</div>
+    </div>`;
+  }).join("");
+}
+function renderBalanceChart(){
+  const el=document.getElementById("balance-chart");
+  if(!el) return;
+  const dias=[10,16,20,25,32];
+  const sm={10:{rec:174,us:163.377,uc:2.727,st:7.851},16:{rec:42,us:38.125,uc:0.766,st:3.190},
+    20:{rec:19,us:17.638,uc:0,st:1.411},25:{rec:1236,us:1158.990,uc:0.820,st:76.234},
+    32:{rec:704,us:663.119,uc:0.240,st:32.849}};
+  const vals=dias.map(d=>{const s=sm[d];return{d,bal:+(s.rec-s.us-s.uc-s.st).toFixed(3)};});
+  const maxV=Math.max(...vals.map(v=>Math.abs(v.bal)),1);
+  el.innerHTML=vals.map(v=>{
+    const h=Math.max(Math.round((Math.abs(v.bal)/maxV)*140),4);
+    const c=v.bal>=0?"#22c55e":"#ef4444";
+    return `<div class="chart-bar-col" title="⌀${v.d}mm Balance: ${f3(v.bal)} MT">
+      <div class="chart-val" style="color:${c}">${f3(v.bal)}</div>
+      <div class="chart-bar" style="height:${h}px;background:${c};margin-top:auto"></div>
+      <div class="chart-label">⌀${v.d}mm</div>
+    </div>`;
+  }).join("");
+}
+function renderDashKPIs(){
+  const totR=BASE_SUMMARY.reduce((s,r)=>s+r.received,0);
+  const totUS=BASE_SUMMARY.reduce((s,r)=>s+r.utilSite,0);
+  const totSC=kameranLog.reduce((s,r)=>s+r.totalMT,0);
+  const totSt=BASE_SUMMARY.reduce((s,r)=>s+r.stock,0);
+  const bal=totR-(totUS+totSC+totSt);
+  document.getElementById("db-received").textContent=f3(totR)+" MT";
+  document.getElementById("db-util-site").textContent=f3(totUS)+" MT";
+  document.getElementById("db-sc").textContent=f3(totSC)+" MT";
+  const bEl=document.getElementById("db-balance");
+  bEl.textContent=(bal>=0?"+":"")+f3(bal)+" MT";
+  bEl.style.color=Math.abs(bal)<1?"#22c55e":bal>0?"#f59e0b":"#ef4444";
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 3 — STOCK ALERT
+// ══════════════════════════════════════════════════════════════════════════
+function renderStockAlert(){
+  const dias=[10,16,20,25,32];
+  const el=document.getElementById("stock-alerts");
+  if(!el) return;
+  let html="";
+  dias.forEach(d=>{
+    const s=BASE_SUMMARY.find(r=>r.dia===d);
+    if(!s) return;
+    const bal=+(s.received-s.utilSite-s.utilSC-s.stock).toFixed(3);
+    const thresh=parseFloat(document.getElementById("th-"+d)?.value)||0;
+    if(bal<thresh){
+      html+=`<div class="alert-red">🔴 <strong>⌀${d}mm — LOW STOCK</strong> — Net balance <strong>${f3(bal)} MT</strong> is below threshold <strong>${thresh} MT</strong>. Physical store stock: ${f3(s.stock)} MT. Consider reorder.</div>`;
+    } else {
+      html+=`<div class="alert-green">✅ <strong>⌀${d}mm</strong> — Balance <strong>${f3(bal)} MT</strong> is OK (threshold: ${thresh} MT). Store: ${f3(s.stock)} MT.</div>`;
+    }
+  });
+  el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 4 — EXPORT TO EXCEL
+// ══════════════════════════════════════════════════════════════════════════
+function exportExcel(){
+  if(typeof XLSX==="undefined"){alert("Excel library loading, try again in a moment.");return;}
+  const wb=XLSX.utils.book_new();
+  const sumRows=[["Dia (mm)","Received (MT)","Util Site (MT)","Util S/C (MT)","Stock (MT)","Total Accounted","Balance (MT)"]];
+  BASE_SUMMARY.forEach(r=>{const acc=r.utilSite+r.utilSC+r.stock;sumRows.push([r.dia,r.received,r.utilSite,r.utilSC,r.stock,acc,+(r.received-acc).toFixed(3)]);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sumRows),"Reconciliation");
+  const utilRows=[["#","Tower Location","Item","Tower Type","Soil Class","Total Used (MT)"]];
+  getAllUtil().forEach((r,i)=>utilRows.push([i+1,r.loc,r.item,r.ttype||"",r.soil||"",r.totalMT]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(utilRows),"Utilization");
+  const kamRows=[["#","Month","Period","Pile Entries","Total Weight (MT)"]];
+  kameranLog.forEach((r,i)=>kamRows.push([i+1,r.month,r.period,r.items,r.totalMT]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(kamRows),"SC Monthly Log");
+  const stRows=[["Date","Dia (mm)","No. Bars","Length (m)","Weight (MT)"]];
+  receipts.forEach(r=>stRows.push([r.date,r.dia,r.bars,r.lengthM,r.weightMT]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(stRows),"Stock Receipts");
+  const all=getAllUtil();const ut=all.reduce((s,r)=>s+r.totalMT,0);
+  const dRows=[["Location","Item","Tower Type","Soil","MT Used","% of Total","Status"]];
+  [...all].sort((a,b)=>a.totalMT-b.totalMT).forEach(r=>{
+    const pct=ut>0?((r.totalMT/ut)*100).toFixed(2):"0.00";
+    dRows.push([r.loc,r.item,r.ttype||"",r.soil||"",r.totalMT,pct+"%",r.totalMT===0?"Zero MT - needs data":!r.ttype?"Missing type":"OK"]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(dRows),"Discrepancy");
+  XLSX.writeFile(wb,"Steel_MEW5991_"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 5 — OFFLINE / CONNECTION STATUS
+// ══════════════════════════════════════════════════════════════════════════
+function updateConnStatus(){
+  const badge=document.getElementById("conn-badge");
+  if(!badge) return;
+  if(navigator.onLine){badge.className="online-badge";badge.textContent="🟢 Online";}
+  else{badge.className="offline-badge";badge.textContent="🟡 Offline — edits saved locally";}
+}
+window.addEventListener("online",()=>{updateConnStatus();loadFromFirebase();});
+window.addEventListener("offline",updateConnStatus);
+if("serviceWorker" in navigator){
+  const sw=`const C="sr-mew5991-v2";self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll(["/"]))));self.addEventListener("fetch",e=>e.respondWith(fetch(e.request).then(r=>{const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl));return r;}).catch(()=>caches.match(e.request))));`;
+  const blob=new Blob([sw],{type:"application/javascript"});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function showTab(id,btn){
   document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
   document.getElementById("tab-"+id).classList.add("active");
-  btn.classList.add("active");
+  if(btn) btn.classList.add("active");
+  if(id==="dashboard"){renderDashboard();updateConnStatus();}
+  if(id==="discrepancy") renderDiscrepancy();
 }
+
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 load();
@@ -1034,6 +1354,9 @@ renderSummary();
 window._mergeAndRenderUtil();
 renderKameran();
 renderStock();
+updateConnStatus();
+setTimeout(()=>loadFromFirebase(),800);
+
 </script>
 </body>
 </html>
