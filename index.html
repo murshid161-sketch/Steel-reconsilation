@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Steel Reconciliation — MEW-5991</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;color:#f1f5f9;font-family:Arial,sans-serif;font-size:13px;padding:14px;min-height:100vh}
+  .header{background:linear-gradient(135deg,#1e3a5f,#1e293b);border-radius:10px;padding:14px 20px;margin-bottom:14px;border-left:4px solid #3b82f6}
+  .header h1{font-size:18px;font-weight:700}
+  .header p{color:#94a3b8;font-size:11px;margin-top:3px}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tab-btn{background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+  .tab-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6}
+  .tab-pane{display:none}.tab-pane.active{display:block}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:14px}
+  .card-title{color:#94a3b8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .kpi-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .kpi{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;text-align:center}
+  .kpi-label{color:#94a3b8;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+  .kpi-val{font-size:20px;font-weight:700}
+  .kpi-sub{color:#94a3b8;font-size:10px;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{padding:8px 10px;color:#94a3b8;font-weight:600;border-bottom:2px solid #334155;white-space:nowrap}
+  td{padding:7px 10px;border-bottom:1px solid #33415522}
+  tr:nth-child(even) td{background:#ffffff05}
+  tfoot td{border-top:2px solid #334155;font-weight:700;background:#ffffff08}
+  .ta-r{text-align:right}.ta-l{text-align:left}.ta-c{text-align:center}
+  .green{color:#22c55e}.red{color:#ef4444}.yellow{color:#f59e0b}.accent{color:#3b82f6}.purple{color:#a78bfa}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form-grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+  label{display:block;color:#94a3b8;font-size:11px;margin-bottom:4px}
+  input,select{width:100%;background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:6px;padding:7px 10px;font-size:13px}
+  .form-group{margin-bottom:10px}
+  .btn{background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-sm{background:#1e40af;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer}
+  .btn-red{background:#ef444422;color:#ef4444;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px}
+  .msg{margin-left:12px;color:#22c55e;font-size:13px}
+  .dia-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+  .dia-card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px;text-align:center}
+  .scroll-table{max-height:380px;overflow-y:auto}
+  .filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .filter-btn{background:#0f172a;color:#94a3b8;border:1px solid #334155;border-radius:5px;padding:4px 12px;font-size:12px;cursor:pointer}
+  .filter-btn.active{background:#1e40af;color:#93c5fd;border-color:#3b82f6}
+  .search-box{background:#0f172a;border:1px solid #334155;color:#f1f5f9;border-radius:6px;padding:6px 10px;font-size:12px;width:180px}
+  .badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700}
+  .badge-i{background:#1e40af22;color:#60a5fa;border:1px solid #1e40af55}
+  .badge-ii{background:#16653422;color:#4ade80;border:1px solid #16653455}
+  .badge-iii{background:#78350f22;color:#fbbf24;border:1px solid #78350f55}
+  .alert{background:#1e3a5f;border:1px solid #3b82f655;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px}
+  .alert-title{color:#60a5fa;font-weight:700;margin-bottom:4px}
+  .note{color:#94a3b8;font-size:11px;margin-top:8px}
+  .foot{text-align:center;color:#94a3b8;font-size:11px;margin-top:20px}
+  .chart-bar-wrap{display:flex;align-items:flex-end;gap:6px;height:160px;margin-top:10px;padding-bottom:4px}
+  .chart-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%}
+  .chart-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .4s}
+  .chart-label{color:#94a3b8;font-size:9px;margin-top:4px;text-align:center;word-break:break-word}
+  .chart-val{color:#f1f5f9;font-size:9px;margin-top:2px;font-weight:700}
+  .alert-red{background:#7f1d1d22;border:1px solid #ef444455;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px}
+  .alert-green{background:#14532d22;border:1px solid #22c55e55;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px}
+  .disc-row-miss{background:#ef444411}
+  .offline-badge{display:inline-block;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b55;border-radius:4px;padding:2px 8px;font-size:10px;margin-left:10px}
+  .online-badge{display:inline-block;background:#22c55e22;color:#22c55e;border:1px solid #22c55e55;border-radius:4px;padding:2px 8px;font-size:10px;margin-left:10px}
+  @media(max-width:600px){
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .kpi-grid-3{grid-template-columns:1fr 1fr}
+    .form-grid-4{grid-template-columns:1fr 1fr}
+    .dia-grid{grid-template-columns:repeat(3,1fr)}
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBf8L7gGj5UXx6yZirp4htqiGFZvdQcCpM",
+    authDomain: "lnt5991.firebaseapp.com",
+    projectId: "lnt5991",
+    storageBucket: "lnt5991.firebasestorage.app",
+    messagingSenderId: "903502287289",
+    appId: "1:903502287289:web:4f3c6522b1732a3d9f2668",
+    measurementId: "G-4ZF3GXVCB1"
+  };
+
+  const app = initializeApp(firebaseConfig, "lnt5991-util");
+  const db = getFirestore(app);
+  window._db = db;
+  window._fbReady = true;
+
+  // Expose Firestore helpers globally
+  window._fbOps = { collection, doc, setDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, orderBy };
+
+  // Load extra util entries from Firebase
+  async function loadUtilFromFirebase() {
+    try {
+      const snap = await getDocs(collection(db, "utilization_extra"));
+      const extras = [];
+      snap.forEach(d => extras.push({ _fbId: d.id, ...d.data() }));
+      window._UTIL_EXTRA = extras;
+      if (window._mergeAndRenderUtil) window._mergeAndRenderUtil();
+    } catch(e) { console.warn("Firebase load error:", e); }
+  }
+  loadUtilFromFirebase();
+</script>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚙️ Steel Reconciliation — MEW-5991</h1>
+  <p>L&T Construction · PT&D · 400kV OHL · Khiran–Wafra–Sulaibiya &nbsp;|&nbsp; Contract: MEW/C/5991-2023/2024 &nbsp;|&nbsp; As on: 11-Feb-2026</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('summary',this)">📊 Reconciliation</button>
+  <button class="tab-btn" onclick="showTab('utilization',this)">📋 Utilization</button>
+  <button class="tab-btn" onclick="showTab('kameran',this)">🏗 S/C Monthly Log</button>
+  <button class="tab-btn" onclick="showTab('stock',this)">📦 Stock Receipts</button>
+  <button class="tab-btn" onclick="showTab('dashboard',this)">📈 Dashboard</button>
+  <button class="tab-btn" onclick="showTab('discrepancy',this)">🔍 Discrepancy</button>
+  <button class="tab-btn" onclick="exportExcel()" style="background:#16653488;color:#4ade80;border-color:#16653488">⬇ Export Excel</button>
+</div>
+
+<!-- ═══ SUMMARY ═══════════════════════════════════════════════════════════════ -->
+<div id="tab-summary" class="tab-pane active">
+
+  <div class="alert">
+    <div class="alert-title">ℹ️ Data as on 11-Feb-2026</div>
+    Utilization total (pile-by-pile): <strong style="color:#22c55e">2039.48 MT</strong> across 303 locations. 
+    Summary sheet total: <strong style="color:#f59e0b">2,041.25 MT</strong>. 
+    Difference: <strong style="color:#94a3b8">1.77 MT</strong> (rounding across diameters).
+    Kameran S/C total (cut/bend/tie): <strong style="color:#a78bfa">630.13 MT</strong> across 6 months.
+  </div>
+    Utilization sheet total: <strong style="color:#22c55e">2039.48 MT</strong> across 303 locations. Summary sheet: <strong style="color:#f59e0b">2,041.25 MT</strong>. Gap = <strong style="color:#f59e0b">1.77 MT</strong> — rounding differences across diameters.
+  </div>
+
+  <div class="card">
+    <div class="card-title">Steel Reconciliation — By Rebar Diameter (Summary Sheet Values)</div>
+    <div style="overflow-x:auto">
+      <table id="summary-table">
+        <thead>
+          <tr>
+            <th class="ta-r">Dia (mm)</th>
+            <th class="ta-r">Received (MT)</th>
+            <th class="ta-r">Util. Site (MT)</th>
+            <th class="ta-r">Util. S/C (MT)</th>
+            <th class="ta-r">Stock (MT)</th>
+            <th class="ta-r">Total Accounted</th>
+            <th class="ta-r">Balance (MT)</th>
+          </tr>
+        </thead>
+        <tbody id="summary-body"></tbody>
+        <tfoot id="summary-foot"></tfoot>
+      </table>
+    </div>
+    <div class="note">ℹ️ Balance = Received − (Util. Site + Util. S/C + Stock). Base data as on 11-Feb-2026 (Oula factory source).</div>
+  </div>
+  <div class="kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Total Received</div><div class="kpi-val green" id="kpi-received">—</div></div>
+    <div class="kpi"><div class="kpi-label">Stock at Store</div><div class="kpi-val yellow" id="kpi-stock">—</div></div>
+    <div class="kpi"><div class="kpi-label">Kameran Work (Cut/Bend/Tie)</div><div class="kpi-val accent" id="kpi-kameran">—</div><div class="kpi-sub" id="kpi-kameran-months">—</div></div>
+  </div>
+</div>
+
+<!-- ═══ UTILIZATION ══════════════════════════════════════════════════════════ -->
+<div id="tab-utilization" class="tab-pane">
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Total Locations</div><div class="kpi-val accent" id="kpi-total-loc">303</div></div>
+    <div class="kpi"><div class="kpi-label">Item-I Locations</div><div class="kpi-val" style="color:#60a5fa" id="kpi-i1-count">117</div><div class="kpi-sub" id="kpi-i1-mt">989.7 MT</div></div>
+    <div class="kpi"><div class="kpi-label">Item-II Locations</div><div class="kpi-val green" id="kpi-i2-count">175</div><div class="kpi-sub" id="kpi-i2-mt">953.6 MT</div></div>
+    <div class="kpi"><div class="kpi-label">Item-III Locations</div><div class="kpi-val yellow" id="kpi-i3-count">11</div><div class="kpi-sub" id="kpi-i3-mt">96.1 MT</div></div>
+  </div>
+
+  <div class="kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Total Utilized (Pile-by-Pile)</div><div class="kpi-val green" id="kpi-util-total">2039.48 MT</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Wastage (all entries)</div><div class="kpi-val yellow" id="kpi-avg-waste">—</div><div class="kpi-sub">From entries with wastage &gt; 0</div></div>
+    <div class="kpi"><div class="kpi-label">Highest Single Wastage</div><div class="kpi-val red" id="kpi-max-waste">—</div><div class="kpi-sub" id="kpi-max-waste-loc">Loading...</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tower Location Steel Usage — 298 Locations</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterUtil('ALL',this)" id="filt-all">All (303)</button>
+      <button class="filter-btn" onclick="filterUtil('Item-I',this)" id="filt-i1">Item-I (117)</button>
+      <button class="filter-btn" onclick="filterUtil('Item-II',this)" id="filt-i2">Item-II (175)</button>
+      <button class="filter-btn" onclick="filterUtil('Item-III',this)" id="filt-i3">Item-III (11)</button>
+      <input class="search-box" id="util-search" placeholder="🔍 Search location..." oninput="searchUtil()"/>
+    </div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-l">#</th>
+            <th class="ta-l">Item</th>
+            <th class="ta-l">Tower Location</th>
+            <th class="ta-l">Tower Type</th>
+            <th class="ta-l">Soil</th>
+            <th class="ta-r">Piles</th>
+            <th class="ta-r">Theoretical (MT)</th>
+            <th class="ta-r">Actual Used (MT)</th>
+            <th class="ta-r">Wastage (kg)</th>
+            <th class="ta-r">Wastage %</th>
+            <th class="ta-c" style="width:70px">Action</th>
+          </tr>
+        </thead>
+        <tbody id="util-body"></tbody>
+        <tfoot id="util-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">➕ Add New Tower Location Entry</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tower Location (e.g. 10/37)</label><input id="u-loc" placeholder="10/37"/></div>
+      <div class="form-group"><label>Item</label>
+        <select id="u-item">
+          <option value="Item-I">Item-I</option>
+          <option value="Item-II">Item-II</option>
+          <option value="Item-III">Item-III</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tower Type (e.g. D2+0)</label><input id="u-ttype" placeholder="D2+0"/></div>
+      <div class="form-group"><label>Soil Class (e.g. A, BW, CW)</label><input id="u-soil" placeholder="A"/></div>
+      <div class="form-group"><label>Total Used (MT)</label><input id="u-mt" type="number" step="0.001" placeholder="0.000"/></div>
+    </div>
+    <button class="btn" onclick="addUtilEntry()">Add Entry</button>
+    <span class="msg" id="u-msg"></span>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal" style="display:none;position:fixed;inset:0;background:#000000bb;z-index:999;align-items:center;justify-content:center">
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;width:min(420px,95vw)">
+      <div style="color:#60a5fa;font-weight:700;margin-bottom:16px;font-size:15px">✏️ Edit Tower Location</div>
+      <input type="hidden" id="edit-idx"/>
+      <input type="hidden" id="edit-fbid"/>
+      <div class="form-group"><label>Tower Location</label><input id="edit-loc"/></div>
+      <div class="form-group"><label>Item</label>
+        <select id="edit-item">
+          <option value="Item-I">Item-I</option>
+          <option value="Item-II">Item-II</option>
+          <option value="Item-III">Item-III</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tower Type</label><input id="edit-ttype"/></div>
+      <div class="form-group"><label>Soil Class</label><input id="edit-soil"/></div>
+      <div class="form-group"><label>Total Used (MT)</label><input id="edit-mt" type="number" step="0.001"/></div>
+      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn" onclick="saveEdit()">💾 Save Changes</button>
+        <button class="btn" style="background:#334155" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-red" style="background:#ef444422;color:#ef4444;border:1px solid #ef444455;padding:8px 14px;font-size:13px;font-weight:600;border-radius:6px" onclick="deleteUtil()">🗑 Delete</button>
+      </div>
+      <span class="msg" id="edit-msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 Analysis — Key Observations</div>
+    <div style="line-height:1.8;font-size:12px">
+      <p>📌 <strong style="color:#f59e0b">Highest wastage locations:</strong> 10/0 (D30+0, BW soil, 14.76% = 1,229 kg), 9/0 (D30+0, CW soil, 11.52% = 1,019 kg).
+        Both are <strong>angle towers with heavy foundations</strong> — expected due to complex cage geometry.</p>
+      <br/>
+      <p>📌 <strong style="color:#60a5fa">Large single-location consumers:</strong> Loc 4/0 (D90+0, 44.1 MT), 5/0 (D60+9, 36.9 MT), 8/38 (DT+0, 36.3 MT),
+        9/0 (D30+0, 29.6 MT), 8/25 (DT+0, 28.8 MT). These are deviation towers &amp; terminal structures.</p>
+      <br/>
+      <p>📌 <strong style="color:#4ade80">Standard D2+0 piles (Item-I):</strong> Soil A = ~1.664 MT, Soil B = ~1.909 MT, Soil C = ~2.073 MT, Soil D = ~2.515 MT, Soil E = ~2.768 MT per location. Very consistent — confirms good control.</p>
+      <br/>
+      <p>📌 <strong style="color:#fbbf24">Item-III locations</strong> (KHIRAN 23.2 MT, MNZPA 17.7 MT, 132KV 20.0 MT) are gantry/terminal structures — high steel consumers per structure.</p>
+      <br/>
+      <p>📌 <strong style="color:#ef4444">Discrepancy of ~470.7 MT</strong> between Summary (2,041 MT) and Utilization (1,571 MT) needs resolution.
+        Possible causes: (a) some towers counted in Summary but not yet in Utilization sheet, or (b) unit weight differences between theoretical and actual.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KAMERAN ══════════════════════════════════════════════════════════════ -->
+<div id="tab-kameran" class="tab-pane">
+  <div class="card">
+    <div class="card-title">Kameran — Monthly Joint Measurement (Steel Cut, Bend &amp; Tying) — Total: 630.127 MT</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="ta-l">#</th><th class="ta-l">Month</th><th class="ta-l">Period</th>
+          <th class="ta-r">Entries</th><th class="ta-r">Total Weight (MT)</th><th class="ta-r"></th>
+        </tr>
+      </thead>
+      <tbody id="kameran-body"></tbody>
+      <tfoot id="kameran-foot"></tfoot>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">➕ Add New Monthly Entry</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Month (e.g. Mar 2026)</label><input id="k-month" placeholder="Mar 2026"/></div>
+      <div class="form-group"><label>Period (e.g. 01-Mar to 31-Mar 2026)</label><input id="k-period" placeholder="01-Mar to 31-Mar 2026"/></div>
+      <div class="form-group"><label>Total Weight (MT)</label><input id="k-weight" type="number" step="0.001" placeholder="0.000"/></div>
+      <div class="form-group"><label>No. of Pile Entries</label><input id="k-items" type="number" placeholder="0"/></div>
+    </div>
+    <button class="btn" onclick="addKameran()">Add Entry</button>
+    <span class="msg" id="k-msg"></span>
+  </div>
+</div>
+
+<!-- ═══ STOCK ════════════════════════════════════════════════════════════════ -->
+<div id="tab-stock" class="tab-pane">
+  <div class="dia-grid" id="dia-totals"></div>
+  <div class="card">
+    <div class="card-title">Stock Receipts from Oula Factory</div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-r">Date</th><th class="ta-r">Dia (mm)</th><th class="ta-r">No. Bars</th>
+            <th class="ta-r">Length (m)</th><th class="ta-r">Weight (MT)</th><th class="ta-r"></th>
+          </tr>
+        </thead>
+        <tbody id="stock-body"></tbody>
+        <tfoot id="stock-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">➕ Add New Stock Receipt</div>
+    <div class="form-grid-4">
+      <div class="form-group"><label>Delivery Date</label><input id="s-date" type="date"/></div>
+      <div class="form-group"><label>Rebar Dia (mm)</label>
+        <select id="s-dia"><option value="10">⌀10 mm</option><option value="16">⌀16 mm</option>
+        <option value="20">⌀20 mm</option><option value="25" selected>⌀25 mm</option><option value="32">⌀32 mm</option></select>
+      </div>
+      <div class="form-group"><label>No. of Bars</label><input id="s-bars" type="number" placeholder="0"/></div>
+      <div class="form-group"><label>Length/Bar (m)</label><input id="s-len" type="number" step="0.1" value="12"/></div>
+      <div class="form-group"><label>Weight (MT)</label><input id="s-weight" type="number" step="0.001" placeholder="0.000"/></div>
+    </div>
+    <button class="btn" onclick="addReceipt()">Add Receipt</button>
+    <span class="msg" id="s-msg"></span>
+  </div>
+</div>
+
+
+<!-- ═══ DASHBOARD ═══════════════════════════════════════════════════════════ -->
+<div id="tab-dashboard" class="tab-pane">
+  <div id="conn-bar" style="margin-bottom:10px;font-size:12px">
+    Status: <span id="conn-badge" class="online-badge">🟢 Online</span>
+    <span style="color:#94a3b8;margin-left:12px;font-size:11px">Data syncs to Firebase automatically</span>
+  </div>
+  <div class="card">
+    <div class="card-title">🔴 Stock Alert — Set Low-Stock Thresholds (MT)</div>
+    <div class="form-grid-4" style="margin-bottom:10px">
+      <div class="form-group"><label>⌀10 mm threshold</label><input id="th-10" type="number" value="5" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀16 mm threshold</label><input id="th-16" type="number" value="3" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀20 mm threshold</label><input id="th-20" type="number" value="2" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀25 mm threshold</label><input id="th-25" type="number" value="20" step="1" oninput="renderStockAlert()"/></div>
+      <div class="form-group"><label>⌀32 mm threshold</label><input id="th-32" type="number" value="15" step="1" oninput="renderStockAlert()"/></div>
+    </div>
+    <div id="stock-alerts"></div>
+    <div class="note">Balance = Total Received − (Util Site + Util S/C + Physical Stock). Red = below threshold.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 S/C Monthly Consumption — MT per Month (Kameran Log)</div>
+    <div id="kameran-chart" class="chart-bar-wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📉 Steel Balance per Diameter — Received vs Accounted (MT)</div>
+    <div id="balance-chart" class="chart-bar-wrap"></div>
+    <div class="note">Green = surplus, Red = gap/deficit per diameter.</div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Total Received</div><div class="kpi-val green" id="db-received">—</div></div>
+    <div class="kpi"><div class="kpi-label">Util Site (Summary)</div><div class="kpi-val accent" id="db-util-site">—</div></div>
+    <div class="kpi"><div class="kpi-label">S/C Total (Kameran)</div><div class="kpi-val purple" id="db-sc">—</div></div>
+    <div class="kpi"><div class="kpi-label">Net Balance</div><div class="kpi-val" id="db-balance">—</div></div>
+  </div>
+</div>
+
+<!-- ═══ DISCREPANCY ══════════════════════════════════════════════════════════ -->
+<div id="tab-discrepancy" class="tab-pane">
+  <div class="alert">
+    <div class="alert-title">🔍 Discrepancy Resolver — Summary Sheet vs Utilization Pile-by-Pile</div>
+    Compares Summary sheet total (2,041.25 MT) against actual pile-by-pile entries (2039.48 MT across 303 locations).
+  </div>
+  <div class="kpi-grid-3">
+    <div class="kpi"><div class="kpi-label">Summary Sheet Total</div><div class="kpi-val yellow" id="disc-summary-total">—</div></div>
+    <div class="kpi"><div class="kpi-label">Utilization Pile Total</div><div class="kpi-val green" id="disc-util-total">—</div></div>
+    <div class="kpi"><div class="kpi-label">Gap (Unresolved)</div><div class="kpi-val red" id="disc-gap">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚠️ Flagged Locations — Zero or Incomplete Entries</div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-l">#</th><th class="ta-l">Tower Location</th><th class="ta-l">Item</th>
+            <th class="ta-l">Tower Type</th><th class="ta-l">Soil</th><th class="ta-r">MT</th><th class="ta-c">Status</th>
+          </tr>
+        </thead>
+        <tbody id="disc-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 All Locations — Sorted by MT (Low → High)</div>
+    <div class="scroll-table">
+      <table>
+        <thead>
+          <tr>
+            <th class="ta-l">Location</th><th class="ta-l">Item</th><th class="ta-l">Tower Type</th>
+            <th class="ta-r">MT Used</th><th class="ta-r">% of Total</th>
+          </tr>
+        </thead>
+        <tbody id="disc-full-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="foot">Base data: Steel_Reconsilation_3-9-26_ravi.xlsx · New entries auto-saved in browser</div>
+
+<script>
+// ─── Utilization Data (298 locations from Sheet4) ─────────────────────────────
+const UTIL_DATA = [
+  {loc:"18/12",item:"Item-I",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.159,totalMT:3.164,wastageKg:5.432,wastagePct:0.172},
+  {loc:"12/5",item:"Item-I",ttype:"D10+3",soil:"D",piles:4,theoreticalMT:4.605,totalMT:4.622,wastageKg:16.899,wastagePct:0.367},
+  {loc:"10/36",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.228,wastageKg:44.272,wastagePct:2.028},
+  {loc:"10/35",item:"Item-I",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.839,totalMT:2.942,wastageKg:102.795,wastagePct:3.621},
+  {loc:"10/34",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.954,wastageKg:44.074,wastagePct:2.308},
+  {loc:"10/33",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.234,wastageKg:50.0,wastagePct:2.29},
+  {loc:"10/32",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.954,wastageKg:44.074,wastagePct:2.308},
+  {loc:"10/31",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.234,wastageKg:50.0,wastagePct:2.29},
+  {loc:"10/30",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.949,wastageKg:38.796,wastagePct:2.031},
+  {loc:"10/29",item:"Item-I",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.841,totalMT:2.892,wastageKg:51.574,wastagePct:1.816},
+  {loc:"10/28",item:"Item-I",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.354,totalMT:2.397,wastageKg:42.685,wastagePct:1.813},
+  {loc:"10/27",item:"Item-I",ttype:"D10+0",soil:"C",piles:4,theoreticalMT:3.782,totalMT:3.846,wastageKg:64.034,wastagePct:1.693},
+  {loc:"10/26",item:"Item-I",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.354,totalMT:2.361,wastageKg:7.037,wastagePct:0.299},
+  {loc:"10/25",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.192,wastageKg:8.796,wastagePct:0.403},
+  {loc:"10/24",item:"Item-I",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.354,totalMT:2.359,wastageKg:5.278,wastagePct:0.224},
+  {loc:"10/23",item:"Item-I",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.839,totalMT:2.903,wastageKg:64.377,wastagePct:2.268},
+  {loc:"10/22",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.917,wastageKg:7.037,wastagePct:0.368},
+  {loc:"10/21",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.912,wastageKg:2.265,wastagePct:0.119},
+  {loc:"10/20",item:"Item-I",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.839,totalMT:2.897,wastageKg:58.367,wastagePct:2.056},
+  {loc:"10/19",item:"Item-I",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.106,totalMT:3.201,wastageKg:95.152,wastagePct:3.064},
+  {loc:"10/18",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.954,wastageKg:44.074,wastagePct:2.308},
+  {loc:"10/17",item:"Item-I",ttype:"D10+0",soil:"A",piles:4,theoreticalMT:2.942,totalMT:3.008,wastageKg:66.378,wastagePct:2.257},
+  {loc:"10/16",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.906,wastageKg:-3.519,wastagePct:-0.184},
+  {loc:"10/15",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.191,wastageKg:7.037,wastagePct:0.322},
+  {loc:"10/14",item:"Item-I",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.106,totalMT:3.117,wastageKg:10.556,wastagePct:0.34},
+  {loc:"10/13",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.191,wastageKg:7.037,wastagePct:0.322},
+  {loc:"10/12",item:"Item-I",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.354,totalMT:2.389,wastageKg:34.823,wastagePct:1.479},
+  {loc:"10/11",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.279,totalMT:3.287,wastageKg:7.58,wastagePct:0.231},
+  {loc:"10/10",item:"Item-I",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.91,totalMT:1.994,wastageKg:83.827,wastagePct:4.389},
+  {loc:"10/9",item:"Item-I",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.184,totalMT:2.18,wastageKg:-3.21,wastagePct:-0.147},
+  {loc:"10/8",item:"Item-I",ttype:"D10+12",soil:"AW",piles:4,theoreticalMT:4.24,totalMT:4.32,wastageKg:80.323,wastagePct:1.894},
+  {loc:"10/7",item:"Item-I",ttype:"D10+21",soil:"AW",piles:4,theoreticalMT:4.172,totalMT:4.171,wastageKg:-1.021,wastagePct:-0.024},
+  {loc:"10/7A",item:"Item-I",ttype:"D10+21",soil:"",piles:4,theoreticalMT:0.094,totalMT:0.285,wastageKg:190.909,wastagePct:202.563},
+  {loc:"10/06",item:"Item-I",ttype:"D10+21",soil:"BW",piles:4,theoreticalMT:4.871,totalMT:5.002,wastageKg:131.127,wastagePct:2.692},
+  {loc:"10/6",item:"Item-I",ttype:"D10+21",soil:"",piles:4,theoreticalMT:0.094,totalMT:0.094,wastageKg:0.0,wastagePct:0.0},
+  {loc:"10/05",item:"Item-I",ttype:"D10+6",soil:"A",piles:4,theoreticalMT:2.942,totalMT:2.944,wastageKg:2.889,wastagePct:0.098},
+  {loc:"10/04",item:"Item-I",ttype:"D10+3",soil:"AW",piles:4,theoreticalMT:4.134,totalMT:4.157,wastageKg:23.341,wastagePct:0.565},
+  {loc:"10/03",item:"Item-I",ttype:"D2+0",soil:"BW",piles:4,theoreticalMT:3.042,totalMT:3.062,wastageKg:20.414,wastagePct:0.671},
+  {loc:"10/02",item:"Item-I",ttype:"D2+3",soil:"AW",piles:4,theoreticalMT:2.512,totalMT:2.525,wastageKg:12.346,wastagePct:0.491},
+  {loc:"10/01",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.279,totalMT:3.293,wastageKg:13.537,wastagePct:0.413},
+  {loc:"10A/7",item:"Item-I",ttype:"D10+12",soil:"AW",piles:4,theoreticalMT:4.146,totalMT:4.226,wastageKg:80.323,wastagePct:1.938},
+  {loc:"8/44",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.193,totalMT:4.436,wastageKg:243.006,wastagePct:5.796},
+  {loc:"8/43",item:"Item-I",ttype:"D10+12",soil:"BW",piles:4,theoreticalMT:6.231,totalMT:6.293,wastageKg:62.681,wastagePct:1.006},
+  {loc:"8/42",item:"Item-I",ttype:"D10+6",soil:"BW",piles:4,theoreticalMT:4.908,totalMT:5.909,wastageKg:1000.938,wastagePct:20.395},
+  {loc:"8/41",item:"Item-I",ttype:"DT+0",soil:"BW",piles:4,theoreticalMT:31.13,totalMT:30.897,wastageKg:-233.784,wastagePct:-0.751},
+  {loc:"8/40",item:"Item-I",ttype:"GT+0",soil:"DW",piles:12,theoreticalMT:23.514,totalMT:23.325,wastageKg:-189.168,wastagePct:-0.804},
+  {loc:"8/39",item:"Item-I",ttype:"GT+0",soil:"CW",piles:8,theoreticalMT:15.163,totalMT:17.475,wastageKg:2311.7,wastagePct:15.246},
+  {loc:"8/38",item:"Item-I",ttype:"DT+0",soil:"DW",piles:4,theoreticalMT:37.923,totalMT:42.93,wastageKg:5006.586,wastagePct:13.202},
+  {loc:"8/37",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.115,totalMT:4.436,wastageKg:320.574,wastagePct:7.79},
+  {loc:"8/36",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.279,totalMT:3.298,wastageKg:19.012,wastagePct:0.58},
+  {loc:"8/35",item:"Item-I",ttype:"D10+6",soil:"DW",piles:4,theoreticalMT:6.675,totalMT:6.547,wastageKg:-128.051,wastagePct:-1.918},
+  {loc:"8/34",item:"Item-I",ttype:"D10+6",soil:"CW",piles:4,theoreticalMT:5.456,totalMT:6.502,wastageKg:1046.014,wastagePct:19.172},
+  {loc:"8/33",item:"Item-I",ttype:"D10+15",soil:"DW",piles:4,theoreticalMT:10.821,totalMT:11.266,wastageKg:444.866,wastagePct:4.111},
+  {loc:"8/32",item:"Item-I",ttype:"D10+12",soil:"BW",piles:4,theoreticalMT:4.908,totalMT:5.96,wastageKg:1051.975,wastagePct:21.435},
+  {loc:"8/31",item:"Item-I",ttype:"D10+12",soil:"A",piles:4,theoreticalMT:5.92,totalMT:6.34,wastageKg:420.341,wastagePct:7.101},
+  {loc:"8/30",item:"Item-I",ttype:"D2+6",soil:"CW",piles:4,theoreticalMT:3.272,totalMT:3.298,wastageKg:26.049,wastagePct:0.796},
+  {loc:"8/28",item:"Item-I",ttype:"D10+15",soil:"CW",piles:4,theoreticalMT:5.546,totalMT:6.553,wastageKg:1006.161,wastagePct:18.141},
+  {loc:"8/27",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.272,totalMT:3.293,wastageKg:20.568,wastagePct:0.629},
+  {loc:"8/26",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.272,totalMT:3.293,wastageKg:20.568,wastagePct:0.629},
+  {loc:"8/25",item:"Item-I",ttype:"D90+0",soil:"BW",piles:4,theoreticalMT:30.263,totalMT:29.841,wastageKg:-421.818,wastagePct:-1.394},
+  {loc:"8/24",item:"Item-I",ttype:"GT(SC)+0",soil:"CW",piles:4,theoreticalMT:4.939,totalMT:5.667,wastageKg:727.796,wastagePct:14.735},
+  {loc:"8/23",item:"Item-I",ttype:"GT+0",soil:"DW",piles:2,theoreticalMT:17.0,totalMT:14.249,wastageKg:-215.479,wastagePct:-1.267},
+  {loc:"8/22",item:"Item-I",ttype:"DT+0",soil:"CW",piles:4,theoreticalMT:16.547,totalMT:16.59,wastageKg:42.222,wastagePct:0.255},
+  {loc:"8/21",item:"Item-I",ttype:"D10+6",soil:"BW",piles:4,theoreticalMT:5.013,totalMT:6.203,wastageKg:1189.612,wastagePct:23.73},
+  {loc:"8/20",item:"Item-I",ttype:"D10+6",soil:"BW",piles:4,theoreticalMT:5.013,totalMT:6.201,wastageKg:1187.798,wastagePct:23.694},
+  {loc:"8/19",item:"Item-I",ttype:"D2+0",soil:"BW",piles:4,theoreticalMT:3.037,totalMT:3.171,wastageKg:134.125,wastagePct:4.416},
+  {loc:"8/18",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.115,totalMT:4.412,wastageKg:297.16,wastagePct:7.221},
+  {loc:"8/17",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.115,totalMT:4.408,wastageKg:292.778,wastagePct:7.115},
+  {loc:"8/16",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.115,totalMT:4.412,wastageKg:296.667,wastagePct:7.209},
+  {loc:"8/15",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.045,totalMT:4.414,wastageKg:368.796,wastagePct:9.118},
+  {loc:"8/14",item:"Item-I",ttype:"D2+0",soil:"DW",piles:5,theoreticalMT:4.914,totalMT:5.55,wastageKg:635.856,wastagePct:12.94},
+  {loc:"8/13",item:"Item-I",ttype:"D10+0",soil:"DW",piles:4,theoreticalMT:6.529,totalMT:6.584,wastageKg:55.085,wastagePct:0.844},
+  {loc:"8/12",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.279,totalMT:3.29,wastageKg:10.679,wastagePct:0.326},
+  {loc:"8/11",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.279,totalMT:3.276,wastageKg:-2.84,wastagePct:-0.087},
+  {loc:"8/10",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.279,totalMT:3.304,wastageKg:25.076,wastagePct:0.765},
+  {loc:"8/9",item:"Item-I",ttype:"D2+0",soil:"DW",piles:4,theoreticalMT:4.261,totalMT:4.533,wastageKg:271.978,wastagePct:6.383},
+  {loc:"8/8",item:"Item-I",ttype:"D2+0",soil:"BW",piles:4,theoreticalMT:3.035,totalMT:3.171,wastageKg:136.742,wastagePct:4.506},
+  {loc:"8/7",item:"Item-I",ttype:"D10+3",soil:"CW",piles:4,theoreticalMT:5.477,totalMT:6.455,wastageKg:977.561,wastagePct:17.848},
+  {loc:"8/6",item:"Item-I",ttype:"D10+24",soil:"CW",piles:4,theoreticalMT:5.476,totalMT:6.432,wastageKg:955.955,wastagePct:17.458},
+  {loc:"8/5",item:"Item-I",ttype:"D10+24",soil:"CW",piles:4,theoreticalMT:5.383,totalMT:6.284,wastageKg:900.992,wastagePct:16.738},
+  {loc:"8/4",item:"Item-I",ttype:"D10+3",soil:"CW",piles:4,theoreticalMT:5.476,totalMT:6.377,wastageKg:900.992,wastagePct:16.453},
+  {loc:"8/3",item:"Item-I",ttype:"D2+0",soil:"AW",piles:4,theoreticalMT:2.442,totalMT:2.449,wastageKg:7.037,wastagePct:0.288},
+  {loc:"8/2",item:"Item-I",ttype:"D10+0",soil:"AW",piles:4,theoreticalMT:4.068,totalMT:4.491,wastageKg:422.678,wastagePct:10.389},
+  {loc:"8/1",item:"Item-I",ttype:"D10+6",soil:"CW",piles:4,theoreticalMT:5.383,totalMT:6.284,wastageKg:900.992,wastagePct:16.738},
+  {loc:"7/0",item:"Item-I",ttype:"D60+9",soil:"BW",piles:4,theoreticalMT:20.825,totalMT:23.049,wastageKg:2223.419,wastagePct:10.677},
+  {loc:"6/2",item:"Item-I",ttype:"D10+33",soil:"DW",piles:4,theoreticalMT:6.707,totalMT:6.663,wastageKg:-44.33,wastagePct:-0.661},
+  {loc:"6/1",item:"Item-I",ttype:"D90+33",soil:"AW",piles:8,theoreticalMT:17.735,totalMT:20.626,wastageKg:2297.706,wastagePct:12.956},
+  {loc:"6/0",item:"Item-I",ttype:"D90+33",soil:"CW",piles:16,theoreticalMT:46.726,totalMT:52.306,wastageKg:5579.387,wastagePct:11.941},
+  {loc:"5/0",item:"Item-I",ttype:"D60+0",soil:"AW",piles:4,theoreticalMT:39.982,totalMT:39.85,wastageKg:-131.264,wastagePct:-0.328},
+  {loc:"4/5",item:"Item-I",ttype:"DT+0",soil:"AW",piles:4,theoreticalMT:13.064,totalMT:14.318,wastageKg:1254.167,wastagePct:9.6},
+  {loc:"4/5,8/22",item:"Item-I",ttype:"DT+0",soil:"AW,CW",piles:8,theoreticalMT:32.044,totalMT:32.326,wastageKg:281.772,wastagePct:0.879},
+  {loc:"4/3",item:"Item-I",ttype:"GU+0",soil:"AW",piles:12,theoreticalMT:14.748,totalMT:15.044,wastageKg:296.105,wastagePct:2.008},
+  {loc:"4/1",item:"Item-I",ttype:"GU+0",soil:"AW",piles:6,theoreticalMT:12.184,totalMT:12.16,wastageKg:-24.637,wastagePct:-0.202},
+  {loc:"4/0",item:"Item-I",ttype:"D90+0",soil:"CW",piles:16,theoreticalMT:47.067,totalMT:46.229,wastageKg:-837.602,wastagePct:-1.78},
+  {loc:"3/11",item:"Item-I",ttype:"D10+6",soil:"AW",piles:4,theoreticalMT:13.266,totalMT:14.397,wastageKg:1131.413,wastagePct:8.529},
+  {loc:"3/10",item:"Item-I",ttype:"D2+6",soil:"CW",piles:4,theoreticalMT:3.446,totalMT:3.473,wastageKg:27.333,wastagePct:0.793},
+  {loc:"3/9",item:"Item-I",ttype:"D2+6",soil:"BW",piles:4,theoreticalMT:3.095,totalMT:3.114,wastageKg:19.605,wastagePct:0.634},
+  {loc:"3/8",item:"Item-I",ttype:"D2+6",soil:"CW",piles:4,theoreticalMT:3.332,totalMT:3.359,wastageKg:27.333,wastagePct:0.82},
+  {loc:"3/7",item:"Item-I",ttype:"D2+6",soil:"DW",piles:4,theoreticalMT:12.812,totalMT:13.97,wastageKg:1158.22,wastagePct:9.04},
+  {loc:"3/3",item:"Item-I",ttype:"D10+0",soil:"CW",piles:2,theoreticalMT:23.783,totalMT:25.931,wastageKg:2147.679,wastagePct:9.03},
+  {loc:"3/3A",item:"Item-I",ttype:"D10+6",soil:"BW",piles:2,theoreticalMT:7.483,totalMT:7.765,wastageKg:281.832,wastagePct:3.766},
+  {loc:"3/2",item:"Item-I",ttype:"D2+6",soil:"DW",piles:4,theoreticalMT:12.641,totalMT:13.164,wastageKg:523.328,wastagePct:4.14},
+  {loc:"3/1",item:"Item-I",ttype:"D10+0",soil:"CW",piles:4,theoreticalMT:11.111,totalMT:12.022,wastageKg:910.994,wastagePct:8.199},
+  {loc:"3/0",item:"Item-I",ttype:"D90+0",soil:"CW",piles:16,theoreticalMT:22.976,totalMT:24.883,wastageKg:1907.314,wastagePct:8.301},
+  {loc:"2/4",item:"Item-I",ttype:"D2+0",soil:"CW",piles:4,theoreticalMT:3.258,totalMT:3.258,wastageKg:0.0,wastagePct:0.0},
+  {loc:"2/3",item:"Item-I",ttype:"D2+0",soil:"EW",piles:4,theoreticalMT:6.545,totalMT:6.511,wastageKg:-34.359,wastagePct:-0.525},
+  {loc:"2/2",item:"Item-I",ttype:"D2+0",soil:"EW",piles:4,theoreticalMT:6.517,totalMT:6.482,wastageKg:-34.359,wastagePct:-0.527},
+  {loc:"2/1",item:"Item-I",ttype:"D2+6",soil:"CW",piles:4,theoreticalMT:3.232,totalMT:3.533,wastageKg:300.536,wastagePct:9.298},
+  {loc:"2/1A",item:"Item-I",ttype:"D2+3",soil:"DW",piles:4,theoreticalMT:4.095,totalMT:4.35,wastageKg:255.682,wastagePct:6.244},
+  {loc:"1A/4",item:"Item-I",ttype:"D2+3",soil:"DW",piles:4,theoreticalMT:4.105,totalMT:4.412,wastageKg:306.988,wastagePct:7.479},
+  {loc:"1A/3",item:"Item-I",ttype:"D10+9",soil:"CW",piles:4,theoreticalMT:8.336,totalMT:8.95,wastageKg:614.074,wastagePct:7.366},
+  {loc:"1A/2",item:"Item-I",ttype:"D10+9",soil:"CW",piles:4,theoreticalMT:5.7,totalMT:6.619,wastageKg:918.128,wastagePct:16.106},
+  {loc:"1A/1",item:"Item-I",ttype:"D10+12",soil:"DW",piles:4,theoreticalMT:10.556,totalMT:10.438,wastageKg:-118.236,wastagePct:-1.12},
+  {loc:"1A/0",item:"Item-I",ttype:"D90+3",soil:"CW",piles:12,theoreticalMT:12.936,totalMT:13.953,wastageKg:1017.246,wastagePct:7.864},
+  {loc:"1B/2",item:"Item-I",ttype:"D2+3",soil:"DW",piles:4,theoreticalMT:4.105,totalMT:4.412,wastageKg:306.988,wastagePct:7.479},
+  {loc:"1B/1",item:"Item-I",ttype:"D10+6",soil:"EW",piles:4,theoreticalMT:15.099,totalMT:16.778,wastageKg:1679.009,wastagePct:11.12},
+  {loc:"1B/0",item:"Item-I",ttype:"D90+0",soil:"DW",piles:4,theoreticalMT:39.334,totalMT:44.796,wastageKg:5461.905,wastagePct:13.886},
+  {loc:"20/0",item:"Item-II",ttype:"D90+0",soil:"E",piles:16,theoreticalMT:15.282,totalMT:17.259,wastageKg:1977.064,wastagePct:12.938},
+  {loc:"19/2",item:"Item-II",ttype:"GU+0",soil:"D",piles:12,theoreticalMT:8.407,totalMT:8.387,wastageKg:-20.282,wastagePct:-0.241},
+  {loc:"19/1",item:"Item-II",ttype:"GU+0",soil:"C",piles:12,theoreticalMT:7.465,totalMT:8.035,wastageKg:570.62,wastagePct:7.644},
+  {loc:"18/18",item:"Item-II",ttype:"D10+9",soil:"C",piles:4,theoreticalMT:3.859,totalMT:3.888,wastageKg:28.328,wastagePct:0.734},
+  {loc:"18/17",item:"Item-II",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.145,totalMT:3.145,wastageKg:0.0,wastagePct:0.0},
+  {loc:"18/16",item:"Item-II",ttype:"D2+3",soil:"D",piles:4,theoreticalMT:2.877,totalMT:2.896,wastageKg:18.642,wastagePct:0.648},
+  {loc:"18/15",item:"Item-II",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.145,totalMT:3.164,wastageKg:19.605,wastagePct:0.623},
+  {loc:"18/14",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.821,totalMT:2.839,wastageKg:18.642,wastagePct:0.661},
+  {loc:"18/13",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.892,totalMT:2.896,wastageKg:4.469,wastagePct:0.155},
+  {loc:"18/11",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.892,totalMT:2.896,wastageKg:4.469,wastagePct:0.155},
+  {loc:"18/10",item:"Item-II",ttype:"D10+6",soil:"D",piles:4,theoreticalMT:4.736,totalMT:4.777,wastageKg:41.211,wastagePct:0.87},
+  {loc:"18/9",item:"Item-II",ttype:"D10+9",soil:"D",piles:4,theoreticalMT:4.718,totalMT:4.799,wastageKg:80.989,wastagePct:1.716},
+  {loc:"18/8",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.877,totalMT:2.896,wastageKg:18.642,wastagePct:0.648},
+  {loc:"18/7",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.877,totalMT:2.896,wastageKg:18.642,wastagePct:0.648},
+  {loc:"18/6",item:"Item-II",ttype:"D10+3",soil:"D",piles:4,theoreticalMT:4.153,totalMT:4.606,wastageKg:452.997,wastagePct:10.908},
+  {loc:"18/5",item:"Item-II",ttype:"D10+0",soil:"C",piles:4,theoreticalMT:4.861,totalMT:5.235,wastageKg:374.018,wastagePct:7.695},
+  {loc:"18/4",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.885,totalMT:3.11,wastageKg:225.46,wastagePct:7.816},
+  {loc:"18/3",item:"Item-II",ttype:"D10",soil:"D",piles:4,theoreticalMT:4.727,totalMT:4.936,wastageKg:209.204,wastagePct:4.426},
+  {loc:"18/2",item:"Item-II",ttype:"D10",soil:"D",piles:4,theoreticalMT:4.727,totalMT:4.964,wastageKg:236.77,wastagePct:5.009},
+  {loc:"18/1",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.892,totalMT:3.122,wastageKg:230.763,wastagePct:7.98},
+  {loc:"18/0",item:"Item-II",ttype:"D30+6",soil:"B",piles:1,theoreticalMT:6.776,totalMT:7.318,wastageKg:542.48,wastagePct:8.006},
+  {loc:"17/19",item:"Item-II",ttype:"D10+0",soil:"B",piles:4,theoreticalMT:3.694,totalMT:3.975,wastageKg:280.206,wastagePct:7.584},
+  {loc:"17/18",item:"Item-II",ttype:"D10+15",soil:"A",piles:4,theoreticalMT:2.982,totalMT:3.302,wastageKg:320.166,wastagePct:10.736},
+  {loc:"17/17",item:"Item-II",ttype:"D10+0",soil:"D",piles:4,theoreticalMT:4.605,totalMT:4.908,wastageKg:302.505,wastagePct:6.569},
+  {loc:"17/16",item:"Item-II",ttype:"D2+3",soil:"A",piles:4,theoreticalMT:1.891,totalMT:2.056,wastageKg:164.575,wastagePct:8.702},
+  {loc:"17/15",item:"Item-II",ttype:"D2+6",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.546,wastageKg:212.85,wastagePct:9.124},
+  {loc:"17/14",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.891,totalMT:1.865,wastageKg:-26.334,wastagePct:-1.392},
+  {loc:"17/13",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.052,wastageKg:230.763,wastagePct:8.181},
+  {loc:"17/12",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.165,totalMT:2.365,wastageKg:199.897,wastagePct:9.233},
+  {loc:"17/11",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.891,totalMT:2.056,wastageKg:164.575,wastagePct:8.702},
+  {loc:"17/10",item:"Item-II",ttype:"D10+0",soil:"A",piles:4,theoreticalMT:2.949,totalMT:3.248,wastageKg:299.083,wastagePct:10.141},
+  {loc:"17/9",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.891,totalMT:2.056,wastageKg:164.575,wastagePct:8.702},
+  {loc:"17/8",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.297,totalMT:2.532,wastageKg:234.256,wastagePct:10.197},
+  {loc:"17/7",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.407,totalMT:2.634,wastageKg:227.232,wastagePct:9.442},
+  {loc:"17/6",item:"Item-II",ttype:"D2+3",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.036,wastageKg:215.612,wastagePct:7.644},
+  {loc:"17/5",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.165,totalMT:2.365,wastageKg:199.897,wastagePct:9.233},
+  {loc:"17/4",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.052,wastageKg:230.763,wastagePct:8.181},
+  {loc:"17/3",item:"Item-II",ttype:"D2+3",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.052,wastageKg:230.763,wastagePct:8.181},
+  {loc:"17/2",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.052,wastageKg:230.763,wastagePct:8.181},
+  {loc:"17/1",item:"Item-II",ttype:"D2+3",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.052,wastageKg:230.763,wastagePct:8.181},
+  {loc:"17/0",item:"Item-II",ttype:"D90+3",soil:"A",piles:16,theoreticalMT:7.635,totalMT:7.533,wastageKg:-102.389,wastagePct:-1.341},
+  {loc:"16/0",item:"Item-II",ttype:"D60+0",soil:"B",piles:4,theoreticalMT:14.346,totalMT:15.311,wastageKg:965.588,wastagePct:6.731},
+  {loc:"15/1",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.336,totalMT:2.535,wastageKg:199.47,wastagePct:8.54},
+  {loc:"15/0",item:"Item-II",ttype:"D30+0",soil:"A",piles:4,theoreticalMT:5.411,totalMT:6.109,wastageKg:697.899,wastagePct:12.898},
+  {loc:"14/5",item:"Item-II",ttype:"D10+3",soil:"A",piles:4,theoreticalMT:2.941,totalMT:3.251,wastageKg:310.34,wastagePct:10.553},
+  {loc:"14/4",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.067,wastageKg:245.915,wastagePct:8.718},
+  {loc:"14/3",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.165,totalMT:2.392,wastageKg:227.169,wastagePct:10.492},
+  {loc:"14/2",item:"Item-II",ttype:"D10+12",soil:"C",piles:4,theoreticalMT:3.721,totalMT:4.091,wastageKg:369.703,wastagePct:9.936},
+  {loc:"14/1",item:"Item-II",ttype:"D10+9",soil:"C",piles:4,theoreticalMT:3.789,totalMT:4.098,wastageKg:309.097,wastagePct:8.158},
+  {loc:"14/0",item:"Item-II",ttype:"D90+21",soil:"C",piles:12,theoreticalMT:16.311,totalMT:16.378,wastageKg:66.593,wastagePct:0.408},
+  {loc:"13/0",item:"Item-II",ttype:"D30+21",soil:"C",piles:4,theoreticalMT:6.934,totalMT:6.952,wastageKg:18.532,wastagePct:0.267},
+  {loc:"12/7",item:"Item-II",ttype:"D10+0",soil:"D",piles:2,theoreticalMT:4.681,totalMT:4.984,wastageKg:302.505,wastagePct:6.462},
+  {loc:"12/6",item:"Item-II",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.085,totalMT:3.334,wastageKg:249.419,wastagePct:8.085},
+  {loc:"12/4",item:"Item-II",ttype:"D10+3",soil:"C",piles:4,theoreticalMT:3.788,totalMT:4.106,wastageKg:317.665,wastagePct:8.386},
+  {loc:"12/3",item:"Item-II",ttype:"D10+15",soil:"C",piles:4,theoreticalMT:3.788,totalMT:4.094,wastageKg:306.301,wastagePct:8.086},
+  {loc:"12/2",item:"Item-II",ttype:"D2+3",soil:"C",piles:4,theoreticalMT:2.336,totalMT:2.545,wastageKg:209.319,wastagePct:8.961},
+  {loc:"12/1",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.336,totalMT:2.545,wastageKg:209.319,wastagePct:8.961},
+  {loc:"12/0",item:"Item-II",ttype:"D60+0",soil:"D",piles:4,theoreticalMT:28.535,totalMT:31.023,wastageKg:2487.72,wastagePct:8.718},
+  {loc:"11/110",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.818,totalMT:3.069,wastageKg:251.075,wastagePct:8.911},
+  {loc:"11/13",item:"Item-II",ttype:"D10+15",soil:"C",piles:2,theoreticalMT:3.911,totalMT:4.232,wastageKg:321.115,wastagePct:8.211},
+  {loc:"11/12",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.162,totalMT:2.404,wastageKg:241.984,wastagePct:11.192},
+  {loc:"11/11",item:"Item-II",ttype:"D2+3",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.534,wastageKg:201.294,wastagePct:8.629},
+  {loc:"11/9",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.818,totalMT:3.048,wastageKg:230.763,wastagePct:8.19},
+  {loc:"11/8",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.546,wastageKg:212.85,wastagePct:9.124},
+  {loc:"11/7",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.546,wastageKg:212.85,wastagePct:9.124},
+  {loc:"11/6",item:"Item-II",ttype:"D10+10",soil:"B",piles:4,theoreticalMT:3.694,totalMT:3.975,wastageKg:280.206,wastagePct:7.584},
+  {loc:"11/5",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.546,wastageKg:212.85,wastagePct:9.124},
+  {loc:"11/4",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.534,wastageKg:201.294,wastagePct:8.629},
+  {loc:"11/3",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.546,wastageKg:212.85,wastagePct:9.124},
+  {loc:"11/2",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.818,totalMT:3.048,wastageKg:230.763,wastagePct:8.19},
+  {loc:"11/1",item:"Item-II",ttype:"D2+6",soil:"C",piles:4,theoreticalMT:2.333,totalMT:2.546,wastageKg:212.85,wastagePct:9.124},
+  {loc:"11/0",item:"Item-II",ttype:"D10+12",soil:"D",piles:4,theoreticalMT:31.721,totalMT:33.348,wastageKg:1626.301,wastagePct:5.127},
+  {loc:"10/3",item:"Item-II",ttype:"D10+24",soil:"C",piles:4,theoreticalMT:3.83,totalMT:4.184,wastageKg:354.229,wastagePct:9.249},
+  {loc:"10/2",item:"Item-II",ttype:"D10+6",soil:"D",piles:4,theoreticalMT:4.566,totalMT:4.924,wastageKg:358.409,wastagePct:7.85},
+  {loc:"10/1",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.314,totalMT:2.551,wastageKg:236.509,wastagePct:10.22},
+  {loc:"10/0",item:"Item-II",ttype:"D60+0",soil:"C",piles:4,theoreticalMT:24.753,totalMT:26.075,wastageKg:1321.833,wastagePct:5.34},
+  {loc:"9/2",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.314,totalMT:2.551,wastageKg:236.509,wastagePct:10.22},
+  {loc:"9/1",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.774,totalMT:2.83,wastageKg:55.484,wastagePct:2.0},
+  {loc:"9/0",item:"Item-II",ttype:"D60+0",soil:"D",piles:4,theoreticalMT:27.902,totalMT:31.833,wastageKg:3930.427,wastagePct:14.086},
+  {loc:"8/29",item:"Item-II",ttype:"D10+12",soil:"DW",piles:4,theoreticalMT:6.581,totalMT:6.646,wastageKg:65.616,wastagePct:0.997},
+  {loc:"8/0",item:"Item-II",ttype:"D10+6",soil:"BW",piles:4,theoreticalMT:10.011,totalMT:10.484,wastageKg:473.05,wastagePct:4.725},
+  {loc:"8A/38",item:"Item-II",ttype:"D10+21",soil:"D",piles:4,theoreticalMT:4.566,totalMT:4.924,wastageKg:358.409,wastagePct:7.85},
+  {loc:"8A/37",item:"Item-II",ttype:"D60+18",soil:"C",piles:4,theoreticalMT:15.791,totalMT:16.215,wastageKg:423.647,wastagePct:2.683},
+  {loc:"8A/36",item:"Item-II",ttype:"D2+6",soil:"A",piles:4,theoreticalMT:1.862,totalMT:2.085,wastageKg:222.072,wastagePct:11.923},
+  {loc:"8A/35",item:"Item-II",ttype:"D30+0",soil:"A",piles:2,theoreticalMT:5.627,totalMT:6.226,wastageKg:598.932,wastagePct:10.643},
+  {loc:"8A/34",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.862,totalMT:2.085,wastageKg:222.072,wastagePct:11.923},
+  {loc:"8A/33",item:"Item-II",ttype:"D10+6",soil:"A",piles:4,theoreticalMT:2.946,totalMT:3.253,wastageKg:307.136,wastagePct:10.426},
+  {loc:"8A/32",item:"Item-II",ttype:"D30+3",soil:"B",piles:4,theoreticalMT:7.127,totalMT:7.664,wastageKg:536.28,wastagePct:7.524},
+  {loc:"8A/31",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"8A/30",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"8A/29",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"8A/28",item:"Item-II",ttype:"D30+3",soil:"C",piles:4,theoreticalMT:6.934,totalMT:7.534,wastageKg:600.705,wastagePct:8.664},
+  {loc:"8A/27",item:"Item-II",ttype:"D10+0",soil:"D",piles:4,theoreticalMT:4.67,totalMT:6.979,wastageKg:2309.113,wastagePct:49.444},
+  {loc:"8A/26",item:"Item-II",ttype:"D10",soil:"D",piles:4,theoreticalMT:4.566,totalMT:4.865,wastageKg:298.968,wastagePct:6.548},
+  {loc:"8A/25",item:"Item-II",ttype:"D10",soil:"D",piles:4,theoreticalMT:4.566,totalMT:4.865,wastageKg:298.968,wastagePct:6.548},
+  {loc:"8A/24",item:"Item-II",ttype:"D10+3",soil:"A",piles:4,theoreticalMT:2.952,totalMT:3.243,wastageKg:290.855,wastagePct:9.854},
+  {loc:"8A/23",item:"Item-II",ttype:"D10+0",soil:"B",piles:4,theoreticalMT:3.806,totalMT:4.05,wastageKg:244.752,wastagePct:6.431},
+  {loc:"8A/22",item:"Item-II",ttype:"D90+6",soil:"D",piles:4,theoreticalMT:29.726,totalMT:30.099,wastageKg:373.358,wastagePct:1.256},
+  {loc:"8A/21",item:"Item-II",ttype:"D10+15",soil:"D",piles:4,theoreticalMT:4.68,totalMT:4.694,wastageKg:13.362,wastagePct:0.285},
+  {loc:"8A/20",item:"Item-II",ttype:"D90+3",soil:"C",piles:4,theoreticalMT:28.096,totalMT:29.069,wastageKg:973.022,wastagePct:3.463},
+  {loc:"8A/19",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.359,totalMT:2.577,wastageKg:218.182,wastagePct:9.25},
+  {loc:"8A/18",item:"Item-II",ttype:"D60+0",soil:"A",piles:4,theoreticalMT:11.812,totalMT:12.71,wastageKg:898.006,wastagePct:7.603},
+  {loc:"7/117",item:"Item-II",ttype:"D2+3",soil:"A",piles:4,theoreticalMT:1.864,totalMT:2.035,wastageKg:170.723,wastagePct:9.159},
+  {loc:"7/115",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.165,totalMT:2.356,wastageKg:190.909,wastagePct:8.818},
+  {loc:"7/48",item:"Item-II",ttype:"D10",soil:"D",piles:4,theoreticalMT:4.652,totalMT:5.01,wastageKg:358.409,wastagePct:7.705},
+  {loc:"7/47",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"7/46",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"7/45",item:"Item-II",ttype:"D10+12",soil:"C",piles:4,theoreticalMT:3.924,totalMT:4.278,wastageKg:354.229,wastagePct:9.027},
+  {loc:"7/42",item:"Item-II",ttype:"D10+12",soil:"C",piles:4,theoreticalMT:3.924,totalMT:4.247,wastageKg:322.696,wastagePct:8.223},
+  {loc:"7/41",item:"Item-II",ttype:"D10",soil:"D",piles:4,theoreticalMT:4.652,totalMT:4.973,wastageKg:320.938,wastagePct:6.9},
+  {loc:"7/40",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"7/39",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.962,totalMT:3.224,wastageKg:261.726,wastagePct:8.836},
+  {loc:"7/38",item:"Item-II",ttype:"D10+6",soil:"D",piles:4,theoreticalMT:3.916,totalMT:4.218,wastageKg:302.242,wastagePct:7.719},
+  {loc:"7/37",item:"Item-II",ttype:"D2+6",soil:"C",piles:4,theoreticalMT:2.385,totalMT:2.613,wastageKg:228.428,wastagePct:9.578},
+  {loc:"7/36",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.863,totalMT:3.082,wastageKg:219.208,wastagePct:7.657},
+  {loc:"7/35",item:"Item-II",ttype:"D2+6",soil:"E",piles:4,theoreticalMT:3.13,totalMT:3.15,wastageKg:19.605,wastagePct:0.626},
+  {loc:"7/34",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.849,totalMT:3.082,wastageKg:233.38,wastagePct:8.193},
+  {loc:"7/33",item:"Item-II",ttype:"D2+6",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"7/32",item:"Item-II",ttype:"D10+6",soil:"D",piles:2,theoreticalMT:4.596,totalMT:4.751,wastageKg:154.777,wastagePct:3.368},
+  {loc:"7/31",item:"Item-II",ttype:"D10+6",soil:"D",piles:4,theoreticalMT:4.573,totalMT:4.598,wastageKg:24.446,wastagePct:0.535},
+  {loc:"7/30",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.792,totalMT:3.011,wastageKg:219.208,wastagePct:7.851},
+  {loc:"7/29",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.835,totalMT:2.092,wastageKg:257.157,wastagePct:14.012},
+  {loc:"7/28",item:"Item-II",ttype:"D10+0",soil:"C",piles:4,theoreticalMT:3.851,totalMT:4.152,wastageKg:301.038,wastagePct:7.817},
+  {loc:"7/27",item:"Item-II",ttype:"D2+0",soil:"E",piles:4,theoreticalMT:3.13,totalMT:3.15,wastageKg:19.917,wastagePct:0.636},
+  {loc:"7/26",item:"Item-II",ttype:"D2+0",soil:"D",piles:5,theoreticalMT:3.512,totalMT:3.786,wastageKg:274.01,wastagePct:7.803},
+  {loc:"7/25",item:"Item-II",ttype:"D2+3",soil:"A",piles:4,theoreticalMT:1.835,totalMT:2.082,wastageKg:246.929,wastagePct:13.455},
+  {loc:"7/24",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.306,totalMT:2.518,wastageKg:212.85,wastagePct:9.232},
+  {loc:"7/23",item:"Item-II",ttype:"D2+6",soil:"A",piles:4,theoreticalMT:1.875,totalMT:2.086,wastageKg:211.323,wastagePct:11.273},
+  {loc:"7/22",item:"Item-II",ttype:"D2+6",soil:"A",piles:4,theoreticalMT:1.864,totalMT:2.07,wastageKg:206.02,wastagePct:11.052},
+  {loc:"7/21",item:"Item-II",ttype:"D10+24",soil:"A",piles:4,theoreticalMT:2.951,totalMT:3.279,wastageKg:328.734,wastagePct:11.141},
+  {loc:"7/20",item:"Item-II",ttype:"D10+24",soil:"A",piles:4,theoreticalMT:2.951,totalMT:3.279,wastageKg:328.734,wastagePct:11.141},
+  {loc:"7/19",item:"Item-II",ttype:"D10+21",soil:"A",piles:4,theoreticalMT:2.951,totalMT:3.279,wastageKg:328.734,wastagePct:11.141},
+  {loc:"7/18",item:"Item-II",ttype:"D10+21",soil:"A",piles:4,theoreticalMT:2.951,totalMT:3.285,wastageKg:334.795,wastagePct:11.347},
+  {loc:"7/16",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.864,totalMT:2.062,wastageKg:197.996,wastagePct:10.622},
+  {loc:"7/14",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.821,totalMT:3.04,wastageKg:219.208,wastagePct:7.771},
+  {loc:"7/13",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.864,totalMT:1.988,wastageKg:123.753,wastagePct:6.639},
+  {loc:"7/12",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.792,totalMT:2.799,wastageKg:7.086,wastagePct:0.254},
+  {loc:"7/11",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.862,totalMT:1.828,wastageKg:-34.359,wastagePct:-1.845},
+  {loc:"7/10",item:"Item-II",ttype:"D10+0",soil:"A",piles:4,theoreticalMT:2.949,totalMT:3.323,wastageKg:373.347,wastagePct:12.659},
+  {loc:"7/9",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.899,wastageKg:-34.359,wastagePct:-1.777},
+  {loc:"7/8",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:2.03,totalMT:1.996,wastageKg:-34.359,wastagePct:-1.693},
+  {loc:"7/7",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:2.04,totalMT:2.226,wastageKg:185.787,wastagePct:9.108},
+  {loc:"7/6",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.856,totalMT:2.874,wastageKg:18.642,wastagePct:0.653},
+  {loc:"7/5",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.442,totalMT:2.675,wastageKg:232.846,wastagePct:9.536},
+  {loc:"7/4",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.379,totalMT:2.626,wastageKg:247.019,wastagePct:10.385},
+  {loc:"7/3",item:"Item-II",ttype:"D10+6",soil:"C",piles:4,theoreticalMT:7.921,totalMT:8.599,wastageKg:677.805,wastagePct:8.557},
+  {loc:"7/2",item:"Item-II",ttype:"D10+6",soil:"A",piles:4,theoreticalMT:16.141,totalMT:16.566,wastageKg:424.602,wastagePct:2.631},
+  {loc:"7/1",item:"Item-II",ttype:"D10",soil:"B",piles:4,theoreticalMT:10.315,totalMT:10.653,wastageKg:337.682,wastagePct:3.274},
+  {loc:"5/11",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.534,totalMT:2.697,wastageKg:162.624,wastagePct:6.418},
+  {loc:"5/10",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.863,totalMT:2.997,wastageKg:134.657,wastagePct:4.704},
+  {loc:"5/9",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.908,wastageKg:-25.692,wastagePct:-1.329},
+  {loc:"5/8",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:2.004,totalMT:1.979,wastageKg:-25.692,wastagePct:-1.282},
+  {loc:"5/7",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.908,wastageKg:-25.692,wastagePct:-1.329},
+  {loc:"5/6",item:"Item-II",ttype:"D10+0",soil:"A",piles:4,theoreticalMT:2.99,totalMT:3.295,wastageKg:304.983,wastagePct:10.201},
+  {loc:"5/5",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.908,wastageKg:-25.692,wastagePct:-1.329},
+  {loc:"5/4",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.908,wastageKg:-25.692,wastagePct:-1.329},
+  {loc:"5/3",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.862,totalMT:1.899,wastageKg:36.505,wastagePct:1.96},
+  {loc:"5/2",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.862,totalMT:1.899,wastageKg:36.505,wastagePct:1.96},
+  {loc:"5/1",item:"Item-II",ttype:"D10",soil:"CW",piles:4,theoreticalMT:7.392,totalMT:8.347,wastageKg:954.633,wastagePct:12.915},
+  {loc:"4/4",item:"Item-II",ttype:"GU+0",soil:"CW",piles:12,theoreticalMT:14.741,totalMT:14.751,wastageKg:10.481,wastagePct:0.071},
+  {loc:"4/2",item:"Item-II",ttype:"GU+0",soil:"BW",piles:12,theoreticalMT:9.185,totalMT:9.482,wastageKg:297.176,wastagePct:3.235},
+  {loc:"4A/0",item:"Item-II",ttype:"D30+0",soil:"A",piles:4,theoreticalMT:5.625,totalMT:5.668,wastageKg:43.152,wastagePct:0.767},
+  {loc:"3/13",item:"Item-II",ttype:"D2+0",soil:"C",piles:4,theoreticalMT:2.314,totalMT:2.596,wastageKg:281.96,wastagePct:12.184},
+  {loc:"3/12",item:"Item-II",ttype:"D2+0",soil:"D",piles:4,theoreticalMT:2.792,totalMT:2.856,wastageKg:63.778,wastagePct:2.284},
+  {loc:"3/6",item:"Item-II",ttype:"GU+0",soil:"C",piles:6,theoreticalMT:15.167,totalMT:16.258,wastageKg:1090.204,wastagePct:7.188},
+  {loc:"3/5",item:"Item-II",ttype:"GU+0",soil:"C",piles:6,theoreticalMT:14.975,totalMT:16.873,wastageKg:1897.843,wastagePct:12.673},
+  {loc:"3/4",item:"Item-II",ttype:"GU+0",soil:"D",piles:6,theoreticalMT:15.74,totalMT:16.057,wastageKg:316.919,wastagePct:2.013},
+  {loc:"2/0",item:"Item-II",ttype:"D60+0",soil:"CW",piles:4,theoreticalMT:27.763,totalMT:28.074,wastageKg:310.856,wastagePct:1.12},
+  {loc:"2A/3",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.899,wastageKg:-34.359,wastagePct:-1.777},
+  {loc:"2A/2",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.207,totalMT:2.418,wastageKg:211.095,wastagePct:9.564},
+  {loc:"2A/1",item:"Item-II",ttype:"D2+0",soil:"B",piles:4,theoreticalMT:2.207,totalMT:2.418,wastageKg:211.095,wastagePct:9.564},
+  {loc:"2A/0",item:"Item-II",ttype:"D2+0",soil:"A",piles:4,theoreticalMT:1.933,totalMT:1.899,wastageKg:-34.359,wastagePct:-1.777},
+  {loc:"1/0",item:"Item - II",ttype:"DT+0",soil:"B",piles:16,theoreticalMT:8.636,totalMT:9.061,wastageKg:424.828,wastagePct:4.919},
+  {loc:"GC-1",item:"Item-II",ttype:"GT+0",soil:"B",piles:4,theoreticalMT:10.149,totalMT:10.795,wastageKg:646.498,wastagePct:6.37},
+  {loc:"RINGS",item:"Item-II",ttype:"D2",soil:"",piles:16,theoreticalMT:7.404,totalMT:7.125,wastageKg:7.679,wastagePct:0.104},
+  {loc:"132KV",item:"ITEM-III",ttype:"DT",soil:"CW",piles:8,theoreticalMT:48.558,totalMT:49.14,wastageKg:889.206,wastagePct:1.831},
+  {loc:"KHIRAN",item:"Item-III",ttype:"GT-M",soil:"AW",piles:4,theoreticalMT:24.865,totalMT:26.025,wastageKg:1159.661,wastagePct:4.664},
+  {loc:"MNZPA",item:"Item-III",ttype:"GT-END",soil:"BW",piles:8,theoreticalMT:19.076,totalMT:19.827,wastageKg:750.619,wastagePct:3.935},
+  {loc:"30-DT ALZOUR",item:"Item-III",ttype:"DT+0",soil:"",piles:4,theoreticalMT:0.111,totalMT:0.111,wastageKg:0.0,wastagePct:0.0},
+  {loc:"30-GT ALZOUR",item:"Item-III",ttype:"GT-END",soil:"",piles:4,theoreticalMT:0.06,totalMT:0.06,wastageKg:0.0,wastagePct:0.0},
+  {loc:"30GT CL",item:"Item-III",ttype:"DT+0",soil:"",piles:4,theoreticalMT:0.171,totalMT:0.171,wastageKg:0.0,wastagePct:0.0},
+  {loc:"30GTCP",item:"Item-III",ttype:"GT CP",soil:"",piles:4,theoreticalMT:0.092,totalMT:0.092,wastageKg:0.0,wastagePct:0.0},
+  {loc:"31 DT",item:"Item-III",ttype:"DT+0",soil:"",piles:4,theoreticalMT:0.111,totalMT:0.111,wastageKg:0.0,wastagePct:0.0},
+  {loc:"31DT",item:"Item-III",ttype:"DT+0",soil:"",piles:4,theoreticalMT:0.111,totalMT:0.111,wastageKg:0.0,wastagePct:0.0},
+  {loc:"30GT,31GT",item:"Item-III",ttype:"GT",soil:"",piles:24,theoreticalMT:0.359,totalMT:0.359,wastageKg:0.0,wastagePct:0.0},
+  {loc:"ZOUR -A",item:"Item-III",ttype:"GT-M",soil:"",piles:4,theoreticalMT:0.136,totalMT:0.136,wastageKg:0.0,wastagePct:0.0}
+];
+
+// ─── Base Data ────────────────────────────────────────────────────────────────
+const BASE_SUMMARY=[
+  {dia:10,received:174.0,utilSite:163.377,utilSC:2.727,stock:7.851},
+  {dia:16,received:42.0,utilSite:38.125,utilSC:0.766,stock:3.19},
+  {dia:25,received:1236.0,utilSite:1158.99,utilSC:0.82,stock:76.234},
+  {dia:32,received:704.0,utilSite:663.119,utilSC:0.24,stock:32.849},
+  {dia:20,received:19.0,utilSite:17.638,utilSC:0.0,stock:1.411},
+];
+const BASE_KAMERAN=[
+  {month:"Aug 2025",period:"01-Aug-2025 to 31-Aug-2025",totalMT:102.243,items:23},
+  {month:"Sep 2025",period:"01-Sep-2025 to 30-Sep-2025",totalMT:162.836,items:53},
+  {month:"Oct 2025",period:"01-Oct-2025 to 31-Oct-2025",totalMT:185.826,items:35},
+  {month:"Nov 2025",period:"01-Nov-2025 to 03-Dec-2025",totalMT:52.868,items:16},
+  {month:"Dec 2025",period:"04-Dec-2025 to 07-Jan-2026",totalMT:60.056,items:8},
+  {month:"Feb 2026",period:"01-Feb-2026 to 28-Feb-2026",totalMT:66.298,items:12},
+];
+const BASE_RECEIPTS=[
+  {date:"10-Aug-2024",dia:25,bars:616,lengthM:12,weightMT:28.000},
+  {date:"10-Aug-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"18-Aug-2024",dia:25,bars:836,lengthM:12,weightMT:38.000},
+  {date:"18-Aug-2024",dia:10,bars:810,lengthM:12,weightMT:6.000},
+  {date:"18-Aug-2024",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"18-Aug-2024",dia:32,bars:234,lengthM:12,weightMT:18.000},
+  {date:"02-Sep-2024",dia:25,bars:1144,lengthM:12,weightMT:52.000},
+  {date:"02-Sep-2024",dia:10,bars:1350,lengthM:12,weightMT:10.000},
+  {date:"14-Sep-2024",dia:32,bars:338,lengthM:12,weightMT:26.000},
+  {date:"14-Sep-2024",dia:25,bars:748,lengthM:12,weightMT:34.000},
+  {date:"14-Sep-2024",dia:16,bars:318,lengthM:12,weightMT:6.000},
+  {date:"14-Sep-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"22-Sep-2024",dia:32,bars:598,lengthM:12,weightMT:46.000},
+  {date:"22-Sep-2024",dia:25,bars:2552,lengthM:12,weightMT:116.000},
+  {date:"22-Sep-2024",dia:10,bars:4050,lengthM:12,weightMT:30.000},
+  {date:"16-Oct-2024",dia:32,bars:1196,lengthM:12,weightMT:92.000},
+  {date:"16-Oct-2024",dia:25,bars:528,lengthM:12,weightMT:24.000},
+  {date:"16-Oct-2024",dia:16,bars:212,lengthM:12,weightMT:4.000},
+  {date:"16-Oct-2024",dia:10,bars:1080,lengthM:12,weightMT:8.000},
+  {date:"05-Nov-2024",dia:25,bars:704,lengthM:12,weightMT:32.000},
+  {date:"18-Nov-2024",dia:32,bars:390,lengthM:12,weightMT:30.000},
+  {date:"18-Nov-2024",dia:25,bars:704,lengthM:12,weightMT:32.000},
+  {date:"18-Nov-2024",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"20-Nov-2024",dia:32,bars:104,lengthM:12,weightMT:8.000},
+  {date:"20-Nov-2024",dia:25,bars:220,lengthM:12,weightMT:10.000},
+  {date:"20-Nov-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"05-Dec-2024",dia:32,bars:52,lengthM:12,weightMT:4.000},
+  {date:"05-Dec-2024",dia:25,bars:1320,lengthM:12,weightMT:60.000},
+  {date:"10-Dec-2024",dia:32,bars:390,lengthM:12,weightMT:30.000},
+  {date:"10-Dec-2024",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"04-Feb-2025",dia:32,bars:598,lengthM:12,weightMT:46.000},
+  {date:"04-Feb-2025",dia:25,bars:880,lengthM:12,weightMT:40.000},
+  {date:"04-Feb-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"04-Feb-2025",dia:10,bars:1080,lengthM:12,weightMT:8.000},
+  {date:"24-Feb-2025",dia:25,bars:660,lengthM:12,weightMT:30.000},
+  {date:"24-Feb-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"04-Mar-2025",dia:32,bars:520,lengthM:12,weightMT:40.000},
+  {date:"04-Mar-2025",dia:25,bars:440,lengthM:12,weightMT:20.000},
+  {date:"04-Mar-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"04-Mar-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"09-Apr-2025",dia:32,bars:208,lengthM:12,weightMT:16.000},
+  {date:"09-Apr-2025",dia:25,bars:836,lengthM:12,weightMT:38.000},
+  {date:"09-Apr-2025",dia:10,bars:1350,lengthM:12,weightMT:10.000},
+  {date:"07-May-2025",dia:25,bars:1320,lengthM:12,weightMT:60.000},
+  {date:"07-May-2025",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"21-May-2025",dia:32,bars:728,lengthM:12,weightMT:56.000},
+  {date:"21-May-2025",dia:25,bars:1980,lengthM:12,weightMT:90.000},
+  {date:"21-May-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"21-May-2025",dia:10,bars:1620,lengthM:12,weightMT:12.000},
+  {date:"14-Jun-2025",dia:25,bars:484,lengthM:12,weightMT:22.000},
+  {date:"14-Jun-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"02-Jul-2025",dia:25,bars:1188,lengthM:12,weightMT:54.000},
+  {date:"02-Jul-2025",dia:16,bars:212,lengthM:12,weightMT:4.000},
+  {date:"02-Jul-2025",dia:10,bars:810,lengthM:12,weightMT:6.000},
+  {date:"14-Jul-2025",dia:32,bars:754,lengthM:12,weightMT:58.000},
+  {date:"14-Jul-2025",dia:25,bars:1980,lengthM:12,weightMT:90.000},
+  {date:"14-Jul-2025",dia:16,bars:212,lengthM:12,weightMT:4.000},
+  {date:"14-Jul-2025",dia:10,bars:1080,lengthM:12,weightMT:8.000},
+  {date:"30-Aug-2025",dia:32,bars:468,lengthM:12,weightMT:36.000},
+  {date:"30-Aug-2025",dia:25,bars:1100,lengthM:12,weightMT:50.000},
+  {date:"30-Aug-2025",dia:10,bars:1350,lengthM:12,weightMT:10.000},
+  {date:"14-Sep-2025",dia:25,bars:1892,lengthM:12,weightMT:86.000},
+  {date:"14-Sep-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"14-Sep-2025",dia:10,bars:1080,lengthM:12,weightMT:8.000},
+  {date:"05-Oct-2025",dia:25,bars:660,lengthM:12,weightMT:30.000},
+  {date:"05-Oct-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"07-Oct-2025",dia:25,bars:660,lengthM:12,weightMT:30.000},
+  {date:"07-Oct-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"13-Oct-2025",dia:32,bars:208,lengthM:12,weightMT:16.000},
+  {date:"13-Oct-2025",dia:25,bars:220,lengthM:12,weightMT:10.000},
+  {date:"13-Oct-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"13-Oct-2025",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"15-Oct-2025",dia:32,bars:234,lengthM:12,weightMT:18.000},
+  {date:"15-Oct-2025",dia:25,bars:264,lengthM:12,weightMT:12.000},
+  {date:"15-Oct-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"20-Oct-2024",dia:32,bars:416,lengthM:12,weightMT:32.000},
+  {date:"25-Oct-2025",dia:32,bars:52,lengthM:12,weightMT:4.000},
+  {date:"25-Oct-2025",dia:25,bars:308,lengthM:12,weightMT:14.000},
+  {date:"25-Oct-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"25-Oct-2025",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"18-Nov-2025",dia:32,bars:104,lengthM:12,weightMT:8.000},
+  {date:"18-Nov-2025",dia:25,bars:440,lengthM:12,weightMT:20.000},
+  {date:"18-Nov-2025",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"18-Nov-2025",dia:20,bars:646,lengthM:12,weightMT:19.000},
+  {date:"18-Nov-2025",dia:16,bars:318,lengthM:12,weightMT:6.000},
+  {date:"18-Nov-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"26-Nov-2025",dia:32,bars:130,lengthM:12,weightMT:10.000},
+  {date:"26-Nov-2025",dia:25,bars:396,lengthM:12,weightMT:18.000},
+  {date:"26-Nov-2025",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"04-Dec-2025",dia:10,bars:270,lengthM:12,weightMT:2.000},
+  {date:"04-Dec-2025",dia:32,bars:390,lengthM:12,weightMT:30.000},
+  {date:"26-Dec-2025",dia:32,bars:156,lengthM:12,weightMT:12.000},
+  {date:"26-Dec-2025",dia:25,bars:440,lengthM:12,weightMT:20.000},
+  {date:"26-Dec-2025",dia:32,bars:416,lengthM:12,weightMT:32.000},
+  {date:"26-Dec-2025",dia:25,bars:572,lengthM:12,weightMT:26.000},
+  {date:"26-Dec-2025",dia:16,bars:106,lengthM:12,weightMT:2.000},
+  {date:"26-Dec-2025",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"04-Feb-2026",dia:32,bars:234,lengthM:12,weightMT:18.000},
+  {date:"04-Feb-2026",dia:10,bars:540,lengthM:12,weightMT:4.000},
+  {date:"05-Feb-2026",dia:25,bars:220,lengthM:12,weightMT:10.000},
+  {date:"23-Feb-2026",dia:32,bars:234,lengthM:12,weightMT:18.000},
+  {date:"23-Feb-2026",dia:25,bars:880,lengthM:12,weightMT:40.000},
+  {date:"23-Feb-2026",dia:10,bars:810,lengthM:12,weightMT:6.000}
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let kameranLog=[...BASE_KAMERAN];
+let receipts=[...BASE_RECEIPTS];
+let utilFilter='ALL';
+
+function load(){
+  try{
+    const k=localStorage.getItem("sr-kameran");
+    if(k) kameranLog=[...BASE_KAMERAN,...JSON.parse(k)];
+    const r=localStorage.getItem("sr-receipts");
+    if(r) receipts=[...BASE_RECEIPTS,...JSON.parse(r)];
+  }catch(e){}
+}
+
+// ─── Firebase Load: Kameran + Receipts ───────────────────────────────────────
+async function loadFromFirebase(){
+  if(!window._fbReady || !window._fbOps) return;
+  const {collection,getDocs}=window._fbOps;
+  const db=window._db;
+  try{
+    const kSnap=await getDocs(collection(db,"kameran_extra"));
+    const kExtras=[];
+    kSnap.forEach(d=>kExtras.push({_fbId:d.id,...d.data()}));
+    kExtras.sort((a,b)=>(a._ts||0)-(b._ts||0));
+    kameranLog=[...BASE_KAMERAN,...kExtras];
+    renderKameran(); renderSummary();
+  }catch(e){console.warn("Kameran Firebase load:",e);}
+  try{
+    const rSnap=await getDocs(collection(db,"receipts_extra"));
+    const rExtras=[];
+    rSnap.forEach(d=>rExtras.push({_fbId:d.id,...d.data()}));
+    rExtras.sort((a,b)=>(a._ts||0)-(b._ts||0));
+    receipts=[...BASE_RECEIPTS,...rExtras];
+    renderStock();
+  }catch(e){console.warn("Receipts Firebase load:",e);}
+}
+
+function saveKameranFB(entry,fbId){
+  if(!window._fbReady||!window._fbOps) return;
+  const {doc,setDoc}=window._fbOps;
+  setDoc(doc(window._db,"kameran_extra",fbId),entry).catch(e=>console.warn("Kameran FB save:",e));
+}
+function delKameranFB(fbId){
+  if(!window._fbReady||!window._fbOps||!fbId) return;
+  const {doc,deleteDoc}=window._fbOps;
+  deleteDoc(doc(window._db,"kameran_extra",fbId)).catch(e=>console.warn("Kameran FB del:",e));
+}
+function saveReceiptFB(entry,fbId){
+  if(!window._fbReady||!window._fbOps) return;
+  const {doc,setDoc}=window._fbOps;
+  setDoc(doc(window._db,"receipts_extra",fbId),entry).catch(e=>console.warn("Receipt FB save:",e));
+}
+function delReceiptFB(fbId){
+  if(!window._fbReady||!window._fbOps||!fbId) return;
+  const {doc,deleteDoc}=window._fbOps;
+  deleteDoc(doc(window._db,"receipts_extra",fbId)).catch(e=>console.warn("Receipt FB del:",e));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const f3=v=>Number(v).toFixed(3);
+const f1=v=>Number(v).toFixed(1);
+const balColor=b=>Math.abs(b)<0.1?"#22c55e":b>0?"#f59e0b":"#ef4444";
+const itemBadge=i=>{
+  if(i==="Item-I")   return `<span class="badge badge-i">Item-I</span>`;
+  if(i==="Item-II")  return `<span class="badge badge-ii">Item-II</span>`;
+  return `<span class="badge badge-iii">Item-III</span>`;
+};
+
+// ─── Render Summary ───────────────────────────────────────────────────────────
+function renderSummary(){
+  let totR=0,totUS=0,totUC=0,totSt=0,rows="";
+  BASE_SUMMARY.forEach((r,i)=>{
+    const total=r.utilSite+r.utilSC+r.stock;
+    const bal=r.received-total;
+    const bg=i%2===0?"background:#ffffff05":"";
+    rows+=`<tr style="${bg}">
+      <td class="ta-r accent"><b>⌀ ${r.dia}</b></td>
+      <td class="ta-r">${f3(r.received)}</td>
+      <td class="ta-r">${f3(r.utilSite)}</td>
+      <td class="ta-r">${f3(r.utilSC)}</td>
+      <td class="ta-r">${f3(r.stock)}</td>
+      <td class="ta-r">${f3(total)}</td>
+      <td class="ta-r" style="color:${balColor(bal)};font-weight:700">${bal>=0?"+":""}${f3(bal)}</td>
+    </tr>`;
+    totR+=r.received;totUS+=r.utilSite;totUC+=r.utilSC;totSt+=r.stock;
+  });
+  document.getElementById("summary-body").innerHTML=rows;
+  const totAcc=totUS+totUC+totSt;
+  const totBal=totR-totAcc;
+  document.getElementById("summary-foot").innerHTML=`<tr>
+    <td class="ta-r">TOTAL</td><td class="ta-r">${f3(totR)}</td><td class="ta-r">${f3(totUS)}</td>
+    <td class="ta-r">${f3(totUC)}</td><td class="ta-r">${f3(totSt)}</td><td class="ta-r">${f3(totAcc)}</td>
+    <td class="ta-r" style="color:${balColor(totBal)};font-weight:700">${totBal>=0?"+":""}${f3(totBal)}</td>
+  </tr>`;
+  document.getElementById("kpi-received").textContent=f1(totR)+" MT";
+  document.getElementById("kpi-stock").textContent=f3(totSt)+" MT";
+  const kTotal=kameranLog.reduce((s,r)=>s+r.totalMT,0);
+  document.getElementById("kpi-kameran").textContent=f3(kTotal)+" MT";
+  document.getElementById("kpi-kameran-months").textContent="across "+kameranLog.length+" months";
+}
+
+// ─── Utilization Extra (Firebase-backed) ─────────────────────────────────────
+window._UTIL_EXTRA = [];
+
+function getAllUtil(){
+  return [...UTIL_DATA, ...window._UTIL_EXTRA];
+}
+
+window._mergeAndRenderUtil = function(){
+  const all=getAllUtil();
+  const base=utilFilter==="ALL"?all:all.filter(r=>r.item===utilFilter);
+  const q=document.getElementById("util-search")?document.getElementById("util-search").value.toLowerCase():"";
+  const data=q?base.filter(r=>r.loc.toLowerCase().includes(q)||(r.ttype||"").toLowerCase().includes(q)):base;
+  renderUtil(data, all);
+  updateUtilKPIs(all);
+};
+
+function updateUtilKPIs(all){
+  const total=all.reduce((s,r)=>s+r.totalMT,0);
+  const i1=all.filter(r=>r.item==="Item-I");
+  const i2=all.filter(r=>r.item==="Item-II");
+  const i3=all.filter(r=>r.item==="Item-III");
+  const kpis=document.querySelectorAll(".kpi .kpi-val");
+  // Update the live KPI grid in utilization tab
+  const utilKpis=document.querySelectorAll("#tab-utilization .kpi");
+  if(utilKpis.length>=4){
+    utilKpis[0].querySelector(".kpi-val").textContent=all.length;
+    utilKpis[1].querySelector(".kpi-val").textContent=i1.length;
+    if(utilKpis[1].querySelector(".kpi-sub")) utilKpis[1].querySelector(".kpi-sub").textContent=f3(i1.reduce((s,r)=>s+r.totalMT,0))+" MT";
+    utilKpis[2].querySelector(".kpi-val").textContent=i2.length;
+    if(utilKpis[2].querySelector(".kpi-sub")) utilKpis[2].querySelector(".kpi-sub").textContent=f3(i2.reduce((s,r)=>s+r.totalMT,0))+" MT";
+    utilKpis[3].querySelector(".kpi-val").textContent=i3.length;
+    if(utilKpis[3].querySelector(".kpi-sub")) utilKpis[3].querySelector(".kpi-sub").textContent=f3(i3.reduce((s,r)=>s+r.totalMT,0))+" MT";
+  }
+  const kpi2=document.querySelectorAll("#tab-utilization .kpi-grid-3 .kpi");
+  if(kpi2.length>=1) kpi2[0].querySelector(".kpi-val").textContent=f3(total)+" MT";
+}
+
+// ─── Render Utilization ───────────────────────────────────────────────────────
+function renderUtil(data, allData){
+  const tbody=document.getElementById("util-body");
+  const tfoot=document.getElementById("util-foot");
+  const all=allData||getAllUtil();
+  let total=0,rows="";
+  data.forEach((r,i)=>{
+    const bg=i%2===0?"background:#ffffff05":"";
+    const color=r.item==="Item-I"?"#60a5fa":r.item==="Item-II"?"#4ade80":"#fbbf24";
+    const globalIdx=all.indexOf(r);
+    const wpct=r.wastagePct||0;
+    const wpctColor=wpct>10?"#ef4444":wpct>5?"#f59e0b":"#94a3b8";
+    rows+=`<tr style="${bg}">
+      <td class="ta-l" style="color:#94a3b8">${i+1}</td>
+      <td class="ta-l">${itemBadge(r.item)}</td>
+      <td class="ta-l" style="color:${color};font-weight:700">${r.loc}</td>
+      <td class="ta-l" style="color:#94a3b8">${r.ttype||"—"}</td>
+      <td class="ta-l" style="color:#94a3b8">${r.soil||"—"}</td>
+      <td class="ta-r" style="color:#94a3b8">${r.piles||"—"}</td>
+      <td class="ta-r" style="color:#64748b">${f3(r.theoreticalMT||0)}</td>
+      <td class="ta-r" style="font-weight:600;color:#22c55e">${f3(r.totalMT)}</td>
+      <td class="ta-r" style="color:${wpct>5?"#f59e0b":"#94a3b8"}">${r.wastageKg?f3(r.wastageKg):"—"}</td>
+      <td class="ta-r" style="color:${wpctColor};font-weight:${wpct>5?"700":"400"}">${wpct?wpct.toFixed(2)+"%":"—"}</td>
+      <td class="ta-c"><button class="btn-sm" onclick="openEdit(${globalIdx})" style="background:#1e40af22;color:#60a5fa;border:1px solid #1e40af55">✏️</button></td>
+    </tr>`;
+    total+=r.totalMT;
+  });
+  tbody.innerHTML=rows;
+  tfoot.innerHTML=`<tr>
+    <td colspan="7" class="ta-r">TOTAL (${data.length} locations)</td>
+    <td class="ta-r accent" style="font-size:14px;font-weight:700">${f3(total)} MT</td>
+    <td colspan="3"></td>
+  </tr>`;
+}
+
+function filterUtil(item,btn){
+  utilFilter=item;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("util-search").value="";
+  window._mergeAndRenderUtil();
+}
+
+function searchUtil(){
+  window._mergeAndRenderUtil();
+}
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+function openEdit(idx){
+  const all=getAllUtil();
+  const r=all[idx];
+  if(!r) return;
+  document.getElementById("edit-idx").value=idx;
+  document.getElementById("edit-fbid").value=r._fbId||"";
+  document.getElementById("edit-loc").value=r.loc;
+  document.getElementById("edit-item").value=r.item;
+  document.getElementById("edit-ttype").value=r.ttype||"";
+  document.getElementById("edit-soil").value=r.soil||"";
+  document.getElementById("edit-mt").value=r.totalMT;
+  document.getElementById("edit-msg").textContent="";
+  document.getElementById("edit-modal").style.display="flex";
+}
+function closeModal(){ document.getElementById("edit-modal").style.display="none"; }
+
+async function saveEdit(){
+  const idx=parseInt(document.getElementById("edit-idx").value);
+  const fbId=document.getElementById("edit-fbid").value;
+  const loc=document.getElementById("edit-loc").value.trim();
+  const item=document.getElementById("edit-item").value;
+  const ttype=document.getElementById("edit-ttype").value.trim();
+  const soil=document.getElementById("edit-soil").value.trim();
+  const totalMT=parseFloat(document.getElementById("edit-mt").value);
+  const msg=document.getElementById("edit-msg");
+  if(!loc||isNaN(totalMT)){msg.textContent="⚠️ Location and weight required.";return;}
+  const updated={loc,item,ttype,soil,totalMT};
+  msg.textContent="💾 Saving...";
+  if(idx<UTIL_DATA.length){
+    // Base data — save override to Firebase
+    updated._isOverride=true;
+    updated._overrideIdx=idx;
+    const overrideId="override_"+UTIL_DATA[idx].loc.replace(/\//g,"_");
+    if(window._fbReady && window._fbOps){
+      try{
+        await window._fbOps.setDoc(window._fbOps.doc(window._db,"utilization_extra",overrideId), updated);
+        // Remove from UTIL_DATA display by storing override
+        if(!window._UTIL_OVERRIDES) window._UTIL_OVERRIDES={};
+        window._UTIL_OVERRIDES[idx]=updated;
+        UTIL_DATA[idx]={...UTIL_DATA[idx],...updated};
+        msg.textContent="✅ Saved to Firebase!";
+      }catch(e){msg.textContent="⚠️ Firebase error. Saved locally only."; UTIL_DATA[idx]={...UTIL_DATA[idx],...updated};}
+    } else { UTIL_DATA[idx]={...UTIL_DATA[idx],...updated}; msg.textContent="✅ Saved locally."; }
+  } else {
+    // Extra entry — update in Firebase
+    const extraIdx=idx-UTIL_DATA.length;
+    window._UTIL_EXTRA[extraIdx]={...window._UTIL_EXTRA[extraIdx],...updated};
+    if(fbId && window._fbReady && window._fbOps){
+      try{
+        await window._fbOps.setDoc(window._fbOps.doc(window._db,"utilization_extra",fbId), window._UTIL_EXTRA[extraIdx]);
+        msg.textContent="✅ Saved to Firebase!";
+      }catch(e){msg.textContent="⚠️ Firebase error. Saved locally only.";}
+    } else { msg.textContent="✅ Saved locally."; }
+  }
+  window._mergeAndRenderUtil();
+  setTimeout(()=>{ closeModal(); },1200);
+}
+
+async function deleteUtil(){
+  const idx=parseInt(document.getElementById("edit-idx").value);
+  const fbId=document.getElementById("edit-fbid").value;
+  const msg=document.getElementById("edit-msg");
+  if(idx<UTIL_DATA.length){ msg.textContent="⚠️ Base data cannot be deleted. Edit the values instead."; return; }
+  const extraIdx=idx-UTIL_DATA.length;
+  msg.textContent="🗑 Deleting...";
+  if(fbId && window._fbReady && window._fbOps){
+    try{
+      await window._fbOps.deleteDoc(window._fbOps.doc(window._db,"utilization_extra",fbId));
+      msg.textContent="✅ Deleted!";
+    }catch(e){msg.textContent="⚠️ Firebase error.";}
+  }
+  window._UTIL_EXTRA.splice(extraIdx,1);
+  window._mergeAndRenderUtil();
+  setTimeout(()=>closeModal(),900);
+}
+
+// ─── Add New Utilization Entry ─────────────────────────────────────────────────
+async function addUtilEntry(){
+  const loc=document.getElementById("u-loc").value.trim();
+  const item=document.getElementById("u-item").value;
+  const ttype=document.getElementById("u-ttype").value.trim();
+  const soil=document.getElementById("u-soil").value.trim();
+  const totalMT=parseFloat(document.getElementById("u-mt").value);
+  const msg=document.getElementById("u-msg");
+  if(!loc||isNaN(totalMT)){msg.textContent="⚠️ Location and weight required.";return;}
+  const entry={loc,item,ttype,soil,totalMT};
+  msg.textContent="💾 Saving...";
+  if(window._fbReady && window._fbOps){
+    try{
+      const fbId="entry_"+Date.now()+"_"+loc.replace(/[^a-zA-Z0-9]/g,"_");
+      await window._fbOps.setDoc(window._fbOps.doc(window._db,"utilization_extra",fbId), entry);
+      entry._fbId=fbId;
+      msg.textContent="✅ Saved to Firebase!";
+    }catch(e){msg.textContent="⚠️ Firebase error. Saved locally.";}
+  } else { msg.textContent="✅ Added locally."; }
+  window._UTIL_EXTRA.push(entry);
+  window._mergeAndRenderUtil();
+  document.getElementById("u-loc").value="";
+  document.getElementById("u-ttype").value="";
+  document.getElementById("u-soil").value="";
+  document.getElementById("u-mt").value="";
+  setTimeout(()=>msg.textContent="",3000);
+}
+
+// ─── Render Kameran ───────────────────────────────────────────────────────────
+function renderKameran(){
+  let total=0,rows="";
+  kameranLog.forEach((r,i)=>{
+    const bg=i%2===0?"background:#ffffff05":"";
+    const isNew=i>=BASE_KAMERAN.length;
+    rows+=`<tr style="${bg}">
+      <td class="ta-l" style="color:#94a3b8">${i+1}</td>
+      <td class="ta-l"><b>${r.month}</b></td>
+      <td class="ta-l" style="color:#94a3b8;font-size:11px">${r.period}</td>
+      <td class="ta-r">${r.items}</td>
+      <td class="ta-r green" style="font-weight:700">${f3(r.totalMT)}</td>
+      <td class="ta-r">${isNew?`<button class="btn-red" onclick="delKameran(${i})">✕</button>`:""}</td>
+    </tr>`;
+    total+=r.totalMT;
+  });
+  document.getElementById("kameran-body").innerHTML=rows;
+  document.getElementById("kameran-foot").innerHTML=`<tr>
+    <td colspan="4" class="ta-r">GRAND TOTAL</td>
+    <td class="ta-r accent" style="font-size:16px;font-weight:700">${f3(total)} MT</td><td></td>
+  </tr>`;
+}
+
+// ─── Render Stock ─────────────────────────────────────────────────────────────
+function renderStock(){
+  const dias=[10,16,20,25,32];
+  document.getElementById("dia-totals").innerHTML=dias.map(d=>{
+    const t=receipts.filter(r=>r.dia===d).reduce((s,r)=>s+r.weightMT,0);
+    return `<div class="dia-card"><div style="color:#3b82f6;font-size:18px;font-weight:700">⌀${d}</div>
+      <div style="color:#22c55e;font-size:15px;font-weight:700">${f3(t)} MT</div></div>`;
+  }).join("");
+  let total=0,rows="";
+  receipts.forEach((r,i)=>{
+    const isNew=i>=BASE_RECEIPTS.length;
+    rows+=`<tr><td class="ta-r">${r.date}</td><td class="ta-r accent">⌀${r.dia}</td>
+      <td class="ta-r">${r.bars}</td><td class="ta-r">${r.lengthM}</td>
+      <td class="ta-r green" style="font-weight:600">${f3(r.weightMT)}</td>
+      <td class="ta-r">${isNew?`<button class="btn-red" onclick="delReceipt(${i})">✕</button>`:""}</td></tr>`;
+    total+=r.weightMT;
+  });
+  document.getElementById("stock-body").innerHTML=rows;
+  document.getElementById("stock-foot").innerHTML=`<tr>
+    <td colspan="4" class="ta-r">TOTAL</td>
+    <td class="ta-r accent" style="font-weight:700">${f3(total)} MT</td><td></td>
+  </tr>`;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function addKameran(){
+  const month=document.getElementById("k-month").value.trim();
+  const period=document.getElementById("k-period").value.trim();
+  const wt=parseFloat(document.getElementById("k-weight").value);
+  const items=parseInt(document.getElementById("k-items").value)||0;
+  const msg=document.getElementById("k-msg");
+  if(!month||!wt){msg.textContent="⚠️ Month and Weight required.";return;}
+  const ts=Date.now();
+  const fbId="km_"+ts+"_"+month.replace(/[^a-zA-Z0-9]/g,"_");
+  const entry={month,period,totalMT:wt,items,_ts:ts,_fbId:fbId};
+  kameranLog.push(entry);
+  saveKameranFB(entry,fbId);
+  renderKameran();renderSummary();
+  document.getElementById("k-month").value="";
+  document.getElementById("k-period").value="";
+  document.getElementById("k-weight").value="";
+  document.getElementById("k-items").value="";
+  msg.textContent="✅ Saved to Firebase!";setTimeout(()=>msg.textContent="",2500);
+}
+function delKameran(i){
+  const entry=kameranLog[i];
+  if(entry && entry._fbId) delKameranFB(entry._fbId);
+  kameranLog.splice(i,1);
+  renderKameran();renderSummary();
+}
+
+function addReceipt(){
+  const date=document.getElementById("s-date").value;
+  const dia=parseInt(document.getElementById("s-dia").value);
+  const bars=parseInt(document.getElementById("s-bars").value)||0;
+  const len=parseFloat(document.getElementById("s-len").value)||12;
+  const wt=parseFloat(document.getElementById("s-weight").value);
+  const msg=document.getElementById("s-msg");
+  if(!date||!wt){msg.textContent="⚠️ Date and Weight required.";return;}
+  const d=new Date(date);
+  const dateStr=d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}).replace(/ /g,"-");
+  const ts=Date.now();
+  const fbId="rec_"+ts;
+  const entry={date:dateStr,dia,bars,lengthM:len,weightMT:wt,_ts:ts,_fbId:fbId};
+  receipts.push(entry);
+  saveReceiptFB(entry,fbId);
+  renderStock();
+  document.getElementById("s-date").value="";
+  document.getElementById("s-bars").value="";
+  document.getElementById("s-weight").value="";
+  msg.textContent="✅ Saved to Firebase!";setTimeout(()=>msg.textContent="",2500);
+}
+function delReceipt(i){
+  const entry=receipts[i];
+  if(entry && entry._fbId) delReceiptFB(entry._fbId);
+  receipts.splice(i,1);
+  renderStock();
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 1 — DISCREPANCY RESOLVER
+// ══════════════════════════════════════════════════════════════════════════
+const SUMMARY_TOTAL=2041.25; // Summary sheet value
+function renderDiscrepancy(){
+  const all=getAllUtil();
+  const utilTotal=all.reduce((s,r)=>s+r.totalMT,0);
+  const gap=SUMMARY_TOTAL-utilTotal;
+  document.getElementById("disc-summary-total").textContent=f3(SUMMARY_TOTAL)+" MT";
+  document.getElementById("disc-util-total").textContent=f3(utilTotal)+" MT";
+  const gEl=document.getElementById("disc-gap");
+  gEl.textContent=(gap>0?"+":"")+f3(gap)+" MT";
+  gEl.style.color=Math.abs(gap)<1?"#22c55e":gap>0?"#ef4444":"#f59e0b";
+  const flagged=all.filter(r=>r.totalMT===0||!r.ttype||r.ttype==="");
+  let rows="";
+  flagged.forEach((r,i)=>{
+    const status=r.totalMT===0?'<span style="color:#ef4444;font-weight:700">❌ Zero MT</span>':'<span style="color:#f59e0b;font-weight:700">⚠️ No Type</span>';
+    rows+=`<tr style="background:#ef444411"><td class="ta-l" style="color:#94a3b8">${i+1}</td>
+      <td class="ta-l" style="color:#ef4444;font-weight:700">${r.loc}</td>
+      <td class="ta-l">${itemBadge(r.item)}</td>
+      <td class="ta-l">${r.ttype||'<em style="color:#ef4444">MISSING</em>'}</td>
+      <td class="ta-l">${r.soil||"—"}</td>
+      <td class="ta-r">${f3(r.totalMT)}</td>
+      <td class="ta-c">${status}</td></tr>`;
+  });
+  if(!flagged.length) rows=`<tr><td colspan="7" style="text-align:center;color:#22c55e;padding:16px">✅ All locations have data — no flags</td></tr>`;
+  document.getElementById("disc-body").innerHTML=rows;
+  const sorted=[...all].sort((a,b)=>a.totalMT-b.totalMT);
+  let frows="";
+  sorted.forEach(r=>{
+    const pct=utilTotal>0?((r.totalMT/utilTotal)*100).toFixed(2):"0.00";
+    const c=r.totalMT===0?"#ef4444":r.totalMT<1?"#f59e0b":"#f1f5f9";
+    frows+=`<tr><td class="ta-l" style="color:${c};font-weight:600">${r.loc}</td>
+      <td class="ta-l">${itemBadge(r.item)}</td>
+      <td class="ta-l" style="color:#94a3b8">${r.ttype||"—"}</td>
+      <td class="ta-r" style="color:${c};font-weight:600">${f3(r.totalMT)}</td>
+      <td class="ta-r" style="color:#94a3b8">${pct}%</td></tr>`;
+  });
+  document.getElementById("disc-full-body").innerHTML=frows;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 2 — DASHBOARD CHARTS
+// ══════════════════════════════════════════════════════════════════════════
+function renderDashboard(){
+  renderKameranChart();
+  renderBalanceChart();
+  renderDashKPIs();
+  renderStockAlert();
+}
+function renderKameranChart(){
+  const el=document.getElementById("kameran-chart");
+  if(!el||!kameranLog.length){if(el)el.innerHTML='<div style="color:#94a3b8;padding:20px">No data</div>';return;}
+  const maxMT=Math.max(...kameranLog.map(r=>r.totalMT));
+  const colors=["#3b82f6","#22c55e","#f59e0b","#a78bfa","#ec4899","#06b6d4","#f97316","#84cc16"];
+  el.innerHTML=kameranLog.map((r,i)=>{
+    const h=maxMT>0?Math.max(Math.round((r.totalMT/maxMT)*140),4):4;
+    const c=colors[i%colors.length];
+    return `<div class="chart-bar-col" title="${r.month}: ${f3(r.totalMT)} MT">
+      <div class="chart-val" style="color:${c};font-size:8px">${f3(r.totalMT)}</div>
+      <div class="chart-bar" style="height:${h}px;background:${c};margin-top:auto"></div>
+      <div class="chart-label">${r.month.replace(" 20","'")}</div>
+    </div>`;
+  }).join("");
+}
+function renderBalanceChart(){
+  const el=document.getElementById("balance-chart");
+  if(!el) return;
+  const dias=[10,16,20,25,32];
+  const sm={10:{rec:174,us:163.377,uc:2.727,st:7.851},16:{rec:42,us:38.125,uc:0.766,st:3.190},
+    20:{rec:19,us:17.638,uc:0.000,st:1.411},25:{rec:1236,us:1158.990,uc:0.820,st:76.234},
+    32:{rec:704,us:663.119,uc:0.240,st:32.849}};
+  const vals=dias.map(d=>{const s=sm[d];return{d,bal:+(s.rec-s.us-s.uc-s.st).toFixed(3)};});
+  const maxV=Math.max(...vals.map(v=>Math.abs(v.bal)),1);
+  el.innerHTML=vals.map(v=>{
+    const h=Math.max(Math.round((Math.abs(v.bal)/maxV)*140),4);
+    const c=v.bal>=0?"#22c55e":"#ef4444";
+    return `<div class="chart-bar-col" title="⌀${v.d}mm Balance: ${f3(v.bal)} MT">
+      <div class="chart-val" style="color:${c}">${f3(v.bal)}</div>
+      <div class="chart-bar" style="height:${h}px;background:${c};margin-top:auto"></div>
+      <div class="chart-label">⌀${v.d}mm</div>
+    </div>`;
+  }).join("");
+}
+function renderDashKPIs(){
+  const totR=BASE_SUMMARY.reduce((s,r)=>s+r.received,0);
+  const totUS=BASE_SUMMARY.reduce((s,r)=>s+r.utilSite,0);
+  const totSC=kameranLog.reduce((s,r)=>s+r.totalMT,0);
+  const totSt=BASE_SUMMARY.reduce((s,r)=>s+r.stock,0);
+  const bal=totR-(totUS+totSC+totSt);
+  document.getElementById("db-received").textContent=f3(totR)+" MT";
+  document.getElementById("db-util-site").textContent=f3(totUS)+" MT";
+  document.getElementById("db-sc").textContent=f3(totSC)+" MT";
+  const bEl=document.getElementById("db-balance");
+  bEl.textContent=(bal>=0?"+":"")+f3(bal)+" MT";
+  bEl.style.color=Math.abs(bal)<1?"#22c55e":bal>0?"#f59e0b":"#ef4444";
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 3 — STOCK ALERT
+// ══════════════════════════════════════════════════════════════════════════
+function renderStockAlert(){
+  const dias=[10,16,20,25,32];
+  const el=document.getElementById("stock-alerts");
+  if(!el) return;
+  let html="";
+  dias.forEach(d=>{
+    const s=BASE_SUMMARY.find(r=>r.dia===d);
+    if(!s) return;
+    const bal=+(s.received-s.utilSite-s.utilSC-s.stock).toFixed(3);
+    const thresh=parseFloat(document.getElementById("th-"+d)?.value)||0;
+    if(bal<thresh){
+      html+=`<div class="alert-red">🔴 <strong>⌀${d}mm — LOW STOCK</strong> — Net balance <strong>${f3(bal)} MT</strong> is below threshold <strong>${thresh} MT</strong>. Physical store stock: ${f3(s.stock)} MT. Consider reorder.</div>`;
+    } else {
+      html+=`<div class="alert-green">✅ <strong>⌀${d}mm</strong> — Balance <strong>${f3(bal)} MT</strong> is OK (threshold: ${thresh} MT). Store: ${f3(s.stock)} MT.</div>`;
+    }
+  });
+  el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 4 — EXPORT TO EXCEL
+// ══════════════════════════════════════════════════════════════════════════
+function exportExcel(){
+  if(typeof XLSX==="undefined"){alert("Excel library loading, try again in a moment.");return;}
+  const wb=XLSX.utils.book_new();
+  const sumRows=[["Dia (mm)","Received (MT)","Util Site (MT)","Util S/C (MT)","Stock (MT)","Total Accounted","Balance (MT)"]];
+  BASE_SUMMARY.forEach(r=>{const acc=r.utilSite+r.utilSC+r.stock;sumRows.push([r.dia,r.received,r.utilSite,r.utilSC,r.stock,acc,+(r.received-acc).toFixed(3)]);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sumRows),"Reconciliation");
+  const utilRows=[["#","Tower Location","Item","Tower Type","Soil Class","Total Used (MT)"]];
+  getAllUtil().forEach((r,i)=>utilRows.push([i+1,r.loc,r.item,r.ttype||"",r.soil||"",r.totalMT]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(utilRows),"Utilization");
+  const kamRows=[["#","Month","Period","Pile Entries","Total Weight (MT)"]];
+  kameranLog.forEach((r,i)=>kamRows.push([i+1,r.month,r.period,r.items,r.totalMT]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(kamRows),"SC Monthly Log");
+  const stRows=[["Date","Dia (mm)","No. Bars","Length (m)","Weight (MT)"]];
+  receipts.forEach(r=>stRows.push([r.date,r.dia,r.bars,r.lengthM,r.weightMT]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(stRows),"Stock Receipts");
+  const all=getAllUtil();const ut=all.reduce((s,r)=>s+r.totalMT,0);
+  const dRows=[["Location","Item","Tower Type","Soil","MT Used","% of Total","Status"]];
+  [...all].sort((a,b)=>a.totalMT-b.totalMT).forEach(r=>{
+    const pct=ut>0?((r.totalMT/ut)*100).toFixed(2):"0.00";
+    dRows.push([r.loc,r.item,r.ttype||"",r.soil||"",r.totalMT,pct+"%",r.totalMT===0?"Zero MT - needs data":!r.ttype?"Missing type":"OK"]);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(dRows),"Discrepancy");
+  XLSX.writeFile(wb,"Steel_MEW5991_"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURE 5 — OFFLINE / CONNECTION STATUS
+// ══════════════════════════════════════════════════════════════════════════
+function updateConnStatus(){
+  const badge=document.getElementById("conn-badge");
+  if(!badge) return;
+  if(navigator.onLine){badge.className="online-badge";badge.textContent="🟢 Online";}
+  else{badge.className="offline-badge";badge.textContent="🟡 Offline — edits saved locally";}
+}
+window.addEventListener("online",()=>{updateConnStatus();loadFromFirebase();});
+window.addEventListener("offline",updateConnStatus);
+if("serviceWorker" in navigator){
+  const sw=`const C="sr-mew5991-v2";self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll(["/"]))));self.addEventListener("fetch",e=>e.respondWith(fetch(e.request).then(r=>{const cl=r.clone();caches.open(C).then(c=>c.put(e.request,cl));return r;}).catch(()=>caches.match(e.request))));`;
+  const blob=new Blob([sw],{type:"application/javascript"});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function showTab(id,btn){
+  document.querySelectorAll(".tab-pane").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active");
+  if(btn) btn.classList.add("active");
+  if(id==="dashboard"){renderDashboard();updateConnStatus();}
+  if(id==="discrepancy") renderDiscrepancy();
+}
+
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+load();
+renderSummary();
+window._mergeAndRenderUtil();
+renderKameran();
+renderStock();
+updateConnStatus();
+// Compute max wastage KPI
+(function(){
+  const w=UTIL_DATA.filter(r=>r.wastagePct>0).sort((a,b)=>b.wastagePct-a.wastagePct);
+  if(w.length){
+    const top=w[0];
+    const el=document.getElementById("kpi-max-waste");
+    const el2=document.getElementById("kpi-max-waste-loc");
+    if(el) el.textContent=top.wastagePct.toFixed(2)+"%";
+    if(el2) el2.textContent="Loc "+top.loc+" — "+top.ttype+" ("+top.soil+")";
+  }
+  const avgEl=document.getElementById("kpi-avg-waste");
+  if(avgEl){
+    const vals=UTIL_DATA.filter(r=>r.wastagePct>0).map(r=>r.wastagePct);
+    if(vals.length) avgEl.textContent=(vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(2)+"%";
+  }
+})();
+setTimeout(()=>loadFromFirebase(),800);
+
+</script>
+</body>
+</html>
